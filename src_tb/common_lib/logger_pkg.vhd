@@ -11,8 +11,10 @@ package logger_pkg is
 
     type logger_t is protected
 
-        procedure log_warning(message: string := "");
+        procedure log_failure(message: string := "");
         procedure log_error(message : string := "");
+        procedure log_warning(message: string := "");
+        procedure log_note(message: string := "");
 
         procedure final_report;
 
@@ -45,7 +47,7 @@ package body logger_pkg is
 
         procedure disable_write_on_file is
         begin
-          write_on_file := true;
+          write_on_file := false;
         end disable_write_on_file;
 
         procedure set_log_file_name(l_file: string := "log.txt") is
