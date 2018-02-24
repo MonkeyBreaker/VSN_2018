@@ -79,6 +79,7 @@ begin
         trans1_v := transaction_t'(1,2,(others=>'0'));
         trans2_v := transaction_t'(1,2,(others=>'0'));
         work.transaction_comparator_pkg.compare(logger, trans1_v, trans2_v);
+        -- work.transaction_lazy_comparator_pkg.compare(logger, trans1_v, trans2_v);
 
         trans1_v := transaction_t'(1,3,(others=>'0'));
         trans2_v := transaction_t'(1,2,(others=>'0'));
@@ -87,7 +88,7 @@ begin
         work.transaction_lazy_comparator_pkg.compare(logger, trans1_v, trans2_v);
 
         trans1_v := transaction_t'(1,3,(others=>'0'));
-        trans2_v := transaction_t'(2,2,(others=>'0'));
+        trans2_v := transaction_t'(1,2,(others=>'0'));
 
         work.transaction_comparator_pkg.compare(logger, trans1_v, trans2_v);
         work.transaction_lazy_comparator_pkg.compare(logger, trans1_v, trans2_v);
