@@ -93,6 +93,7 @@ begin
         work.transaction_lazy_comparator_pkg.compare(logger, trans1_v, trans2_v);
 
         logger.final_report;
+        logger.close_file;
 
         -- stop the process
         wait;

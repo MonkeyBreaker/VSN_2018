@@ -16,12 +16,14 @@ package logger_pkg is
         procedure log_warning(message: string := "");
         procedure log_note(message: string := "");
 
-        procedure final_report;
 
+        procedure open_file;
+        procedure  close_file;
         procedure enable_write_on_file;
         procedure disable_write_on_file;
         procedure set_log_file_name(l_file: string := "log.txt");
         procedure set_severity_level(level: severity_level := note);
+        procedure final_report;
 
     end protected logger_t;
 
@@ -39,7 +41,18 @@ package body logger_pkg is
         file     log_file      : text;
         variable v_OLINE       : line;
         variable var_sev_lvl   : severity_level := note;
-        variable first_write_on_file : boolean := true;
+        variable is_file_open : boolean := false;
+
+        procedure open_file is
+        begin
+          file_open(log_file, log_file_name.all,  write_mode);
+          is_file_open := true;
+        end open_file;
+
+        procedure  close_file is
+        begin
+          file_close(log_file);
+        end close_file;
 
         procedure enable_write_on_file is
         begin
@@ -67,16 +80,13 @@ package body logger_pkg is
           report message severity level;
 
           if write_on_file = true then
-            if first_write_on_file = false then
-              file_open(log_file, log_file_name.all,  append_mode);
-            else
-              file_open(log_file, log_file_name.all,  write_mode);
-              first_write_on_file := false;
+            if is_file_open = false then
+              open_file;
             end if;
+
             write(v_OLINE, message);
             writeline(log_file, v_OLINE);
 
-            file_close(log_file);
           end if;
         end log;
 
@@ -114,6 +124,7 @@ package body logger_pkg is
         begin
             log("Nb of warning : " & integer'image(nb_warnings));
             log("Nb of errors : " & integer'image(nb_errors));
+            close_file;
         end final_report;
 
     end protected body logger_t;
