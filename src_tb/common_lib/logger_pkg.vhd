@@ -31,10 +31,11 @@ end logger_pkg;
 package body logger_pkg is
 
     type logger_t is protected body
+        type string_ptr_t is access string;
         variable nb_errors     : integer := 0;
         variable nb_warnings   : integer := 0;
         variable write_on_file : boolean := false;
-        variable log_file_name : line;
+        variable log_file_name : string_ptr_t := new string'("default.txt");
         file     log_file      : text;
         variable v_OLINE       : line;
         variable var_sev_lvl   : severity_level := note;
@@ -53,8 +54,7 @@ package body logger_pkg is
         procedure set_log_file_name(l_file: string := "log.txt") is
         begin
             DEALLOCATE(log_file_name);
-            log_file_name := new string(l_file'range);
-            log_file_name.all := l_file;
+            log_file_name := new string'(l_file);
         end set_log_file_name;
 
         procedure set_severity_level(level: severity_level := note) is

@@ -56,7 +56,6 @@ begin
     begin
         -- configure the logger
         logger.enable_write_on_file;
-        -- If the set_log_file_name is not called, it will not write on a file
         logger.set_log_file_name("toto.txt");
         logger.set_severity_level(level => error);
 
