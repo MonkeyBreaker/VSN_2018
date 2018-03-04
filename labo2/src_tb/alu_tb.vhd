@@ -112,14 +112,6 @@ begin
         return std_logic_vector(to_signed(nb, length));
       end get_signed_vector;
 
-      procedure generate_input(a : integer; b : integer; mode : in operator_enum) is
-      begin
-        a_sti <= get_signed_vector(a, a_sti'length);
-        b_sti <= get_signed_vector(b, b_sti'length);
-        mode_sti <= get_operator(mode);
-        wait for 10 ns;
-      end generate_input;
-
       impure function get_integer_value(val: std_logic_vector) return integer is
       begin
         return to_integer(signed(val));
@@ -151,13 +143,35 @@ begin
         end case;
       end get_correct_result;
 
+      procedure generate_input(a : integer; b : integer; mode : in operator_enum) is
+      begin
+        a_sti <= get_signed_vector(a, a_sti'length);
+        b_sti <= get_signed_vector(b, b_sti'length);
+        mode_sti <= get_operator(mode);
+        wait for 10 ns;
+      end generate_input;
+
+    impure function verification_result(alu_value : integer; correct_value: integer; operator : operator_enum) return boolean is
+    begin
+      case operator is
+        when first_bit_test =>
+            if get_signed_vector(alu_value, SIZE)(0) = get_signed_vector(correct_value, SIZE)(0) then
+              return true;
+            else
+              return false;
+            end if;
+        when others =>
+            return alu_value=correct_value;
+      end case;
+    end verification_result;
+
     procedure test(a : integer; b : integer; mode : operator_enum) is
       variable correct_result : integer;
     begin
       generate_input(a, b, mode);
       correct_result := get_correct_result(a, b, mode);
 
-      if(get_integer_value(s_obs) = correct_result) then
+      if(verification_result(get_integer_value(s_obs), correct_result, mode) = true) then
         report "good "  & integer'image(get_integer_value(s_obs)) & " "
                         & integer'image(correct_result) & " " & to_string(mode) & LF severity note;
       else
@@ -170,12 +184,15 @@ begin
         -- a_sti    <= default_value;
         -- b_sti    <= default_value;
         -- mode_sti <= default_value;
-
+        -- add, sub, op_or, op_and, get_first_arg, get_second_arg,first_bit_test, zero
         test(1,2,add);
         test(2,2,sub);
-        test(3,2,sub);
-        test(3,4,sub);
-        test(4,5,op_and);
+        test(3,2,op_or);
+        test(3,4,op_and);
+        test(4,5,get_first_arg);
+        test(4,5,get_second_arg);
+        test(5,5,first_bit_test);
+        test(5,5,zero);
 
         -- do something
         case TESTCASE is
