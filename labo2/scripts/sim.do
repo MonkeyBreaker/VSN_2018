@@ -8,7 +8,7 @@ proc compile_duv { } {
   global Path_DUV
   puts "\nVHDL DUV compilation :"
 
-  vcom $Path_DUV/alu.vhd
+  vcom -work project_lib $Path_DUV/alu.vhd
 }
 
 #------------------------------------------------------------------------------
@@ -17,13 +17,20 @@ proc compile_tb { } {
   global Path_DUV
   puts "\nVHDL TB compilation :"
 
-  vcom -2008 $Path_TB/alu_tb.vhd
+  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/logger_pkg.vhd
+  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/comparator_pkg.vhd
+  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/complex_comparator_pkg.vhd
+  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/common_ctx.vhd
+
+  vcom -work project_lib -2008 ../../labo1/src_tb/project_logger_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/project_ctx.vhd
+  vcom -work project_lib -2008 $Path_TB/alu_tb.vhd
 }
 
 #------------------------------------------------------------------------------
 proc sim_start {TESTCASE SIZE ERRNO} {
 
-  vsim -t 1ns -novopt -GSIZE=$SIZE -GERRNO=$ERRNO -GTESTCASE=$TESTCASE work.alu_tb
+  vsim -t 1ns -novopt -GSIZE=$SIZE -GERRNO=$ERRNO -GTESTCASE=$TESTCASE project_lib.alu_tb
 #  do wave.do
   add wave -r *_sti *_obs *_s
   wave refresh

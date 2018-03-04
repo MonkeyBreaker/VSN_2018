@@ -27,9 +27,8 @@
 -- 0.1   01.03.2018  TbGen      Initial version
 --------------------------------------------------------------------------------
 
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+library project_lib;
+context project_lib.project_ctx;
 
 entity alu_tb is
     generic (
@@ -207,17 +206,17 @@ begin
         correct_result := get_correct_result(a, b, mode);
 
         if(verification_result(get_integer_signed_value(s_obs), correct_result, mode) = true) then
-          report "good [ALU|TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
+          logger.log_note("good [ALU|TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
                           & integer'image(correct_result.result) & "] carry ["
                           & to_string(c_obs) & "|"
                           & to_string(correct_result.carry) & "] "
-                          & to_string(mode) & LF severity note;
+                          & to_string(mode) & LF);
         else
-          report "bad  [ALU TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
+          logger.log_error("bad  [ALU TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
                           & integer'image(correct_result.result) & "] carry ["
                           & to_string(c_obs) & "|"
                           & to_string(correct_result.carry) & "] "
-                          & to_string(mode) & LF severity error;
+                          & to_string(mode) & LF);
         end if;
       else
         report "Input(s) parameter out of bounds, range : [" & integer'image(MAX_NEGATIVE_VALUE)
@@ -226,6 +225,10 @@ begin
     end test;
 
     begin
+
+        logger.enable_write_on_file;
+        logger.set_log_file_name("ALU_TB.txt");
+        logger.set_severity_level(level => note);
         -- a_sti    <= default_value;
         -- b_sti    <= default_value;
         -- mode_sti <= default_value;
@@ -253,6 +256,10 @@ begin
 
         -- end of simulation
         sim_end_s <= true;
+
+        -- Summary and close logger
+        logger.final_report;
+        logger.close_file;
 
         -- stop the process
         wait;
