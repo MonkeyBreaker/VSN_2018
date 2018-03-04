@@ -53,7 +53,7 @@ architecture testbench of alu_tb is
     component alu is
     generic (
         SIZE  : integer := 8;
-        ERRNO : integer := 20
+        ERRNO : integer := 0
     );
     port (
         a_i    : in std_logic_vector(SIZE-1 downto 0);
@@ -66,6 +66,15 @@ architecture testbench of alu_tb is
 
     type operator_enum is (add, sub, op_or, op_and, get_first_arg, get_second_arg,
       first_bit_test, zero);
+
+      -- Inputs to the FIFO.
+    type t_result is record
+      result    : integer;
+      carry     : std_logic;
+    end record t_result;
+
+    constant MAX_POSITIVE_VALUE : integer := ((2**SIZE)/2)-1;
+    constant MAX_NEGATIVE_VALUE : integer := -((2**SIZE)/2);
 
 begin
 
@@ -112,35 +121,47 @@ begin
         return std_logic_vector(to_signed(nb, length));
       end get_signed_vector;
 
-      impure function get_integer_value(val: std_logic_vector) return integer is
+      impure function get_integer_signed_value(val: std_logic_vector) return integer is
       begin
         return to_integer(signed(val));
-      end get_integer_value;
+      end get_integer_signed_value;
 
-      impure function get_correct_result(a : integer; b : integer; operator : operator_enum) return integer is
+      impure function get_correct_result(a : integer; b : integer; operator : operator_enum) return t_result is
+        variable record_results : t_result;
+        variable a_signed_vector : std_logic_vector(SIZE downto 0) := '0' & get_signed_vector(a, SIZE);
+        variable b_signed_vector : std_logic_vector(SIZE downto 0) := '0' & get_signed_vector(b, SIZE);
+        variable carry           : std_logic_vector(SIZE   downto 0);
       begin
+        record_results.carry := '0';
+
         case operator is
           when add =>
-              return a+b;
+              carry := std_logic_vector(unsigned(a_signed_vector) +  unsigned(b_signed_vector));
+              record_results.carry := carry(SIZE);
+              record_results.result := get_integer_signed_value(carry(SIZE-1 downto 0));
           when sub =>
-              return a-b;
+              carry := std_logic_vector(unsigned(a_signed_vector) -  unsigned(b_signed_vector));
+              record_results.carry := carry(SIZE);
+              record_results.result := get_integer_signed_value(carry(SIZE-1 downto 0));
           when op_or =>
-              return get_integer_value(get_signed_vector(a, a_sti'length) or get_signed_vector(b, b_sti'length));
+              record_results.result := get_integer_signed_value(get_signed_vector(a, a_sti'length) or get_signed_vector(b, b_sti'length));
           when op_and =>
-              return get_integer_value(get_signed_vector(a, a_sti'length) and get_signed_vector(b, b_sti'length));
+              record_results.result := get_integer_signed_value(get_signed_vector(a, a_sti'length) and get_signed_vector(b, b_sti'length));
           when get_first_arg =>
-              return a;
+              record_results.result := a;
           when get_second_arg =>
-              return b;
+              record_results.result := b;
           when first_bit_test =>
               if a = b then
-                return 1;
+                record_results.result := 1;
               else
-                return 0;
+                record_results.result := 0;
               end if;
           when others =>
-              return 0;
+              record_results.result := 0;
         end case;
+
+        return record_results;
       end get_correct_result;
 
       procedure generate_input(a : integer; b : integer; mode : in operator_enum) is
@@ -151,32 +172,56 @@ begin
         wait for 10 ns;
       end generate_input;
 
-    impure function verification_result(alu_value : integer; correct_value: integer; operator : operator_enum) return boolean is
+    impure function verification_result(alu_value : integer; correct_value: t_result; operator : operator_enum) return boolean is
     begin
       case operator is
+        when add =>
+            if (correct_value.result = alu_value) and (correct_value.carry=c_obs) then
+              return true;
+            else
+              return false;
+            end if;
+        when sub =>
+            if (correct_value.result = alu_value) and (correct_value.carry=c_obs) then
+              return true;
+            else
+              return false;
+            end if;
         when first_bit_test =>
-            if get_signed_vector(alu_value, SIZE)(0) = get_signed_vector(correct_value, SIZE)(0) then
+            if get_signed_vector(alu_value, SIZE)(0) = get_signed_vector(correct_value.result, SIZE)(0) then
               return true;
             else
               return false;
             end if;
         when others =>
-            return alu_value=correct_value;
+            return alu_value=correct_value.result;
       end case;
     end verification_result;
 
     procedure test(a : integer; b : integer; mode : operator_enum) is
-      variable correct_result : integer;
+      variable correct_result : t_result;
     begin
-      generate_input(a, b, mode);
-      correct_result := get_correct_result(a, b, mode);
 
-      if(verification_result(get_integer_value(s_obs), correct_result, mode) = true) then
-        report "good "  & integer'image(get_integer_value(s_obs)) & " "
-                        & integer'image(correct_result) & " " & to_string(mode) & LF severity note;
+      if(a <= MAX_POSITIVE_VALUE) and (b <= MAX_POSITIVE_VALUE) and (a >= MAX_NEGATIVE_VALUE) and (b >= MAX_NEGATIVE_VALUE)then
+        generate_input(a, b, mode);
+        correct_result := get_correct_result(a, b, mode);
+
+        if(verification_result(get_integer_signed_value(s_obs), correct_result, mode) = true) then
+          report "good [ALU|TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
+                          & integer'image(correct_result.result) & "] carry ["
+                          & to_string(c_obs) & "|"
+                          & to_string(correct_result.carry) & "] "
+                          & to_string(mode) & LF severity note;
+        else
+          report "bad  [ALU TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
+                          & integer'image(correct_result.result) & "] carry ["
+                          & to_string(c_obs) & "|"
+                          & to_string(correct_result.carry) & "] "
+                          & to_string(mode) & LF severity error;
+        end if;
       else
-        report "bad "  & integer'image(get_integer_value(s_obs)) & " "
-                       & integer'image(correct_result) &  " " & to_string(mode) & LF severity error;
+        report "Input(s) parameter out of bounds, range : [" & integer'image(MAX_NEGATIVE_VALUE)
+                          & ";" & integer'image(MAX_POSITIVE_VALUE) & "]" & LF severity error;
       end if;
     end test;
 
@@ -185,8 +230,12 @@ begin
         -- b_sti    <= default_value;
         -- mode_sti <= default_value;
         -- add, sub, op_or, op_and, get_first_arg, get_second_arg,first_bit_test, zero
-        test(1,2,add);
-        test(2,2,sub);
+        test(127,127,add);
+        test(0,-127,add);
+        test(-128,127,add);
+        test(-128,1,sub);
+        test(-127,1,sub);
+        test(-128,127,sub);
         test(3,2,op_or);
         test(3,4,op_and);
         test(4,5,get_first_arg);
