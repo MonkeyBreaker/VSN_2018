@@ -206,39 +206,51 @@ begin
         correct_result := get_correct_result(a, b, mode);
 
         if(verification_result(get_integer_signed_value(s_obs), correct_result, mode) = true) then
-          logger.log_note("good [ALU|TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
+          logger.log_note("Good : " & integer'image(a) & " " & to_string(mode) & " " & integer'image(b)
+                          & " [ALU|TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
                           & integer'image(correct_result.result) & "] carry ["
                           & to_string(c_obs) & "|"
                           & to_string(correct_result.carry) & "] "
                           & to_string(mode) & LF);
         else
-          logger.log_error("bad  [ALU TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
+          logger.log_error("Wrong : " & integer'image(a) & " " & to_string(mode) & " " & integer'image(b)
+                          & " [ALU TB] : ["  & integer'image(get_integer_signed_value(s_obs)) & "|"
                           & integer'image(correct_result.result) & "] carry ["
                           & to_string(c_obs) & "|"
                           & to_string(correct_result.carry) & "] "
                           & to_string(mode) & LF);
         end if;
       else
-        report "Input(s) parameter out of bounds, range : [" & integer'image(MAX_NEGATIVE_VALUE)
-                          & ";" & integer'image(MAX_POSITIVE_VALUE) & "]" & LF severity error;
+          logger.log_error("Input(s) parameter out of bounds, range : [" & integer'image(MAX_NEGATIVE_VALUE)
+                          & ";" & integer'image(MAX_POSITIVE_VALUE) & "]" & LF);
       end if;
     end test;
 
+    procedure print_supported_values is
+    begin
+      logger.log_note("Input range values : [" & integer'image(MAX_NEGATIVE_VALUE)
+                      & ";" & integer'image(MAX_POSITIVE_VALUE) & "]" & LF);
+    end print_supported_values;
+
     begin
 
+        -- Logger initialization
         logger.enable_write_on_file;
         logger.set_log_file_name("ALU_TB.txt");
         logger.set_severity_level(level => note);
+
+        -- Print supported values input values
+        print_supported_values;
         -- a_sti    <= default_value;
         -- b_sti    <= default_value;
         -- mode_sti <= default_value;
         -- add, sub, op_or, op_and, get_first_arg, get_second_arg,first_bit_test, zero
-        test(127,127,add);
+        test(250,250,add);
         test(0,-127,add);
-        test(-128,127,add);
-        test(-128,1,sub);
-        test(-127,1,sub);
+        test(-128,-128,add);
         test(-128,127,sub);
+        test(-127,1,sub);
+        test(127,-128,sub);
         test(3,2,op_or);
         test(3,4,op_and);
         test(4,5,get_first_arg);
