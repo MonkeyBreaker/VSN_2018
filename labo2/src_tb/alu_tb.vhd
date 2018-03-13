@@ -29,6 +29,9 @@
 
 library project_lib;
 context project_lib.project_ctx;
+library osvvm;
+use osvvm.all;
+use osvvm.RandomPkg.all;
 
 entity alu_tb is
     generic (
@@ -232,6 +235,8 @@ begin
                       & ";" & integer'image(MAX_POSITIVE_VALUE) & "]" & LF);
     end print_supported_values;
 
+    variable var_rand_a : RandomPType;
+
     begin
 
         -- Logger initialization
@@ -241,6 +246,9 @@ begin
 
         -- Print supported values input values
         print_supported_values;
+
+        var_rand_a.InitSeed(var_rand_a'instance_name);
+
         -- a_sti    <= default_value;
         -- b_sti    <= default_value;
         -- mode_sti <= default_value;
@@ -257,6 +265,12 @@ begin
         test(4,5,get_second_arg);
         test(5,5,first_bit_test);
         test(5,5,zero);
+
+        for i in 0 to 99 loop
+          test(var_rand_a.Uniform(MAX_NEGATIVE_VALUE,MAX_POSITIVE_VALUE), -- Random value for parameter a
+          var_rand_a.Uniform(MAX_NEGATIVE_VALUE,MAX_POSITIVE_VALUE), -- Random value for parameter b
+          operator_enum'VAL(var_rand_a.Uniform(0,7))); -- Random value for a mode
+        end loop;
 
         -- do something
         case TESTCASE is
