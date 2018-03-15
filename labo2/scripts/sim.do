@@ -37,11 +37,11 @@ proc sim_start {TESTCASE SIZE ERRNO} {
   run -all
 }
 
+
 #------------------------------------------------------------------------------
-proc do_all {TESTCASE SIZE ERRNO} {
+proc compile_all {} {
   compile_duv
   compile_tb
-  sim_start $TESTCASE $SIZE $ERRNO
 }
 
 ## MAIN #######################################################################
@@ -72,5 +72,8 @@ if {$argc>0} {
   }
 
 } else {
-  do_all 0 8 0
+  compile_all
+  sim_start 0 8 0
+  sim_start 1 8 0
+  sim_start 2 8 0
 }

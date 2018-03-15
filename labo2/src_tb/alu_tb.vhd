@@ -95,6 +95,7 @@ begin
 
   stimulus_proc: process is
 
+    -- methods
     impure function get_operator(operator : operator_enum) return std_logic_vector is
     begin
       case operator is
@@ -117,7 +118,6 @@ begin
       end case;
     end get_operator;
 
-    -- methods
     impure function get_signed_vector(nb : integer; length : integer) return std_logic_vector is
     begin
       return std_logic_vector(to_signed(nb, length));
@@ -128,6 +128,7 @@ begin
       return to_integer(signed(val));
     end get_integer_signed_value;
 
+    -- This function returns the values expected by the ALU, it's implemented from the specification
     impure function get_correct_result(a : integer; b : integer; operator : operator_enum) return t_result is
       variable record_results : t_result;
       variable a_signed_vector : std_logic_vector(SIZE downto 0) := '0' & get_signed_vector(a, SIZE);
@@ -166,6 +167,7 @@ begin
       return record_results;
     end get_correct_result;
 
+    -- Generate stimulus for the
     procedure generate_input(a : integer; b : integer; mode : in operator_enum) is
     begin
       a_sti <= get_signed_vector(a, a_sti'length);
@@ -205,7 +207,9 @@ begin
       variable correct_result : t_result;
     begin
 
-      if(a <= MAX_POSITIVE_VALUE) and (b <= MAX_POSITIVE_VALUE) and (a >= MAX_NEGATIVE_VALUE) and (b >= MAX_NEGATIVE_VALUE)then
+      -- Check if the value is in range
+      if(a <= MAX_POSITIVE_VALUE) and (b <= MAX_POSITIVE_VALUE) and (a >= MAX_NEGATIVE_VALUE) and (b >= MAX_NEGATIVE_VALUE) then
+        -- Generate a stimulus on the ALU
         generate_input(a, b, mode);
 
         -- get the correct values that correspond the specification of the ALU
@@ -242,7 +246,33 @@ begin
                       & ";" & integer'image(MAX_POSITIVE_VALUE) & "]" & LF);
     end print_supported_values;
 
-    variable var_rand_a : RandomPType;
+    procedure testcase1 is
+    begin
+      test(0,MAX_NEGATIVE_VALUE,add);
+      test(0,MAX_POSITIVE_VALUE,add);
+      test(MAX_NEGATIVE_VALUE,0,add);
+      test(MAX_POSITIVE_VALUE,0,add);
+      test(MAX_NEGATIVE_VALUE,MAX_NEGATIVE_VALUE,add);
+      test(MAX_POSITIVE_VALUE,MAX_POSITIVE_VALUE,add);
+      test(MAX_NEGATIVE_VALUE,1,sub);
+      test(MAX_POSITIVE_VALUE,1,sub);
+      test(MAX_NEGATIVE_VALUE,MAX_NEGATIVE_VALUE,sub);
+      test(MAX_NEGATIVE_VALUE,MAX_POSITIVE_VALUE,sub);
+      test(MAX_POSITIVE_VALUE,MAX_POSITIVE_VALUE,sub);
+      test(MAX_POSITIVE_VALUE,MAX_NEGATIVE_VALUE,sub);
+    end testcase1;
+
+    -- test 1000 random values
+    procedure testcase2 is
+      variable var_rand_a : RandomPType;
+    begin
+      var_rand_a.InitSeed(var_rand_a'instance_name);
+      for i in 0 to 999 loop
+        test(var_rand_a.Uniform(MAX_NEGATIVE_VALUE,MAX_POSITIVE_VALUE), -- Random value for parameter a
+        var_rand_a.Uniform(MAX_NEGATIVE_VALUE,MAX_POSITIVE_VALUE), -- Random value for parameter b
+        operator_enum'VAL(var_rand_a.Uniform(0,7))); -- Random value for a mode
+      end loop;
+    end testcase2;
 
     begin
 
@@ -251,37 +281,23 @@ begin
         logger.set_log_file_name("ALU_TB.txt");
         logger.set_severity_level(level => note);
 
-        -- Print supported values input values
+        -- Print supported input values
         print_supported_values;
-
-        var_rand_a.InitSeed(var_rand_a'instance_name);
 
         -- a_sti    <= default_value;
         -- b_sti    <= default_value;
         -- mode_sti <= default_value;
         -- add, sub, op_or, op_and, get_first_arg, get_second_arg,first_bit_test, zero
-        test(250,250,add);
-        test(0,-127,add);
-        test(-128,-128,add);
-        test(-128,127,sub);
-        test(-127,1,sub);
-        test(127,-128,sub);
-        test(3,2,op_or);
-        test(3,4,op_and);
-        test(4,5,get_first_arg);
-        test(4,5,get_second_arg);
-        test(5,5,first_bit_test);
-        test(5,5,zero);
-
-        for i in 0 to 999 loop
-          test(var_rand_a.Uniform(MAX_NEGATIVE_VALUE,MAX_POSITIVE_VALUE), -- Random value for parameter a
-          var_rand_a.Uniform(MAX_NEGATIVE_VALUE,MAX_POSITIVE_VALUE), -- Random value for parameter b
-          operator_enum'VAL(var_rand_a.Uniform(0,7))); -- Random value for a mode
-        end loop;
 
         -- do something
         case TESTCASE is
-            when 0      => -- default testcase
+            when 0      =>
+              testcase1; -- test bounds pertinents case
+            when 1 =>
+              testcase2; -- test 1000 random values
+            when 2 =>
+              testcase1;
+              testcase2;
             when others => logger.log_failure("Unsupported testcase : "
                                   & integer'image(TESTCASE));
         end case;
