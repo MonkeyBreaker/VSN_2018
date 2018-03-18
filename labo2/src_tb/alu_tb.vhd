@@ -35,11 +35,11 @@ use osvvm.RandomPkg.all;
 
 entity alu_tb is
     generic (
+        LOG_FILE : string  := "ALU.txt";
         TESTCASE : integer := 0;
         SIZE     : integer := 8;
         ERRNO    : integer := 0
     );
-
 end alu_tb;
 
 architecture testbench of alu_tb is
@@ -262,7 +262,7 @@ begin
 
         -- Logger initialization
         logger.enable_write_on_file;
-        logger.set_log_file_name("ALU_TB.txt");
+        logger.set_log_file_name(LOG_FILE);
         logger.set_severity_level(level => note);
 
         -- Print supported input values

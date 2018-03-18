@@ -28,11 +28,15 @@ proc compile_tb { } {
 }
 
 #------------------------------------------------------------------------------
-proc sim_start {TESTCASE SIZE ERRNO} {
+proc sim_start {TESTCASE SIZE ERRNO LOG_FILE} {
 
-  vsim -t 1ns -novopt -GSIZE=$SIZE -GERRNO=$ERRNO -GTESTCASE=$TESTCASE project_lib.alu_tb
+  vsim -t 1ns -novopt -GLOG_FILE=$LOG_FILE -GSIZE=$SIZE -GERRNO=$ERRNO -GTESTCASE=$TESTCASE project_lib.alu_tb
 #  do wave.do
-  add wave -r *_sti *_obs *_s
+  #add wave -r *_sti *_obs *_s
+  add wave -noupdate -expand -group Stimuli *_sti
+  add wave -noupdate -expand -group Observed *_obs
+  add wave -noupdate -expand -group References *_ref
+  add wave -noupdate -expand -group Simulation *_s
   wave refresh
   run -all
 }
@@ -73,7 +77,7 @@ if {$argc>0} {
 
 } else {
   compile_all
-  sim_start 0 8 0
-  sim_start 1 8 0
-  sim_start 2 8 0
+  sim_start 0 8 0 "testcase1.txt"
+  sim_start 1 8 0 "testcase2.txt"
+  sim_start 2 8 0 "testcase3.txt"
 }
