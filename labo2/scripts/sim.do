@@ -80,4 +80,5 @@ if {$argc>0} {
   sim_start 0 8 0 "testcase1.txt"
   sim_start 1 8 0 "testcase2.txt"
   sim_start 2 8 0 "testcase3.txt"
+  sim_start 2 8 21 "testcase4.txt"
 }
