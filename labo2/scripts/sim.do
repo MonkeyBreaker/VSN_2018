@@ -15,14 +15,15 @@ proc compile_duv { } {
 proc compile_tb { } {
   global Path_TB
   global Path_DUV
+  global Path_TOOLS
   puts "\nVHDL TB compilation :"
 
-  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/logger_pkg.vhd
-  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/comparator_pkg.vhd
-  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/complex_comparator_pkg.vhd
-  vcom -work common_lib  -2008 ../../labo1/src_tb/common_lib/common_ctx.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/logger_pkg.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/comparator_pkg.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/complex_comparator_pkg.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/common_ctx.vhd
 
-  vcom -work project_lib -2008 ../../labo1/src_tb/project_logger_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/project_logger_pkg.vhd
   vcom -work project_lib -2008 $Path_TB/project_ctx.vhd
   vcom -work project_lib -2008 $Path_TB/alu_tb.vhd
 }
@@ -57,7 +58,8 @@ if {[file exists work] == 0} {
 
 puts -nonewline "  Path_VHDL => "
 set Path_DUV     "../src"
-set Path_TB       "../src_tb"
+set Path_TB      "../src_tb"
+set Path_TOOLS   "../../tools"
 
 global Path_DUV
 global Path_TB
