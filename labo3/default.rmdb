@@ -1,0 +1,136 @@
+<?xml version="1.0" ?>
+<rmdb version="1.0" toprunnables="directed">
+  <!-- ============== -->
+  <!-- DIRECTED TESTS -->
+  <!-- ============== -->
+  <runnable name="directed" type="group">
+    <parameters>
+        <parameter name="ucdbfile">../(%INSTANCE%).ucdb</parameter>
+    </parameters>
+    <members>
+      <member>dirtest0</member>
+      <member>dirtest1</member>
+      <member>dirtest2</member>
+      <member>dirtest3</member>
+      <member>dirtest4</member>
+      <member>dirtest5</member>
+      <member>dirtest6</member>
+      <member>dirtest7</member>
+      <member>dirtest8</member>
+      <member>dirtest9</member>
+      <member>dirtest10</member>
+      <member>dirtest11</member>
+      <member>dirtest12</member>
+      <member>dirtest13</member>
+      <member>dirtest14</member>
+      <member>dirtest15</member>
+      <member>dirtest16</member>
+    </members>
+
+    <execScript>
+      <command>file delete -force work</command>
+      <command>vlib work</command>
+      <command>vmap work work</command>
+      <command>ln -s (%RMDBDIR%)/tlmvm</command>
+      <command>vcom -2008 (%RMDBDIR%)/src/spike_detection_pkg.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src/log_pkg.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src/fifo.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src/spike_detection.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src_tb/transactions_pkg.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src_tb/transaction_fifo_pkg.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src_tb/agent0_pkg.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src_tb/agent1_pkg.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src_tb/scoreboard_pkg.vhd</command>
+      <command>vcom -2008 (%RMDBDIR%)/src_tb/spike_detection_tb.vhd</command>
+      <command>vsim -GERRNO=(%errno%) work.my_design_tb</command>
+      <command>run -all</command>
+      <command>coverage attribute -name ERRNO -value (%INSTANCE%)</command>
+      <command>coverage save (%ucdbfile%)</command>
+    </execScript>
+  </runnable>
+  <runnable name="dirtest0" type="task">
+    <parameters>
+      <parameter name="errno">0</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest1" type="task">
+    <parameters>
+      <parameter name="errno">1</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest2" type="task">
+    <parameters>
+      <parameter name="errno">2</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest3" type="task">
+    <parameters>
+      <parameter name="errno">3</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest4" type="task">
+    <parameters>
+      <parameter name="errno">4</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest5" type="task">
+    <parameters>
+      <parameter name="errno">5</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest6" type="task">
+    <parameters>
+      <parameter name="errno">6</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest7" type="task">
+    <parameters>
+      <parameter name="errno">7</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest8" type="task">
+    <parameters>
+      <parameter name="errno">8</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest9" type="task">
+    <parameters>
+      <parameter name="errno">9</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest10" type="task">
+    <parameters>
+      <parameter name="errno">10</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest11" type="task">
+    <parameters>
+      <parameter name="errno">11</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest12" type="task">
+    <parameters>
+      <parameter name="errno">12</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest13" type="task">
+    <parameters>
+      <parameter name="errno">13</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest14" type="task">
+    <parameters>
+      <parameter name="errno">14</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest15" type="task">
+    <parameters>
+      <parameter name="errno">15</parameter>
+    </parameters>
+  </runnable>
+  <runnable name="dirtest16" type="task">
+    <parameters>
+      <parameter name="errno">16</parameter>
+    </parameters>
+  </runnable>
+</rmdb>
