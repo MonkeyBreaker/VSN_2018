@@ -27,20 +27,22 @@
 -- 0.1   16.03.2018  TbGen      Initial version
 --------------------------------------------------------------------------------
 
-library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+library project_lib;
+context project_lib.project_ctx;
+library osvvm;
+use osvvm.all;
+use osvvm.RandomPkg.all;
 
 library tlmvm;
 context tlmvm.tlmvm_context;
 
-use work.spike_detection_pkg.all;
+use project_lib.spike_detection_pkg.all;
 
-use work.input_transaction_fifo_pkg.all;
-use work.input_transaction_fifo1_pkg.all;
-use work.output_transaction_fifo_pkg.all;
-use work.agent0_pkg.all;
-use work.scoreboard_pkg.all;
+use project_lib.input_transaction_fifo_pkg.all;
+use project_lib.input_transaction_fifo1_pkg.all;
+use project_lib.output_transaction_fifo_pkg.all;
+use project_lib.agent0_pkg.all;
+use project_lib.scoreboard_pkg.all;
 
 entity spike_detection_tb is
     generic (

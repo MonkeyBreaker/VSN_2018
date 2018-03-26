@@ -8,30 +8,38 @@ proc compile_duv { } {
   global Path_DUV
   puts "\nVHDL DUV compilation :"
 
-  vcom $Path_DUV/spike_detection_pkg.vhd
-  vcom $Path_DUV/log_pkg.vhd
-  vcom $Path_DUV/fifo.vhd
-  vcom $Path_DUV/spike_detection.vhd
+  vcom -work project_lib $Path_DUV/spike_detection_pkg.vhd
+  vcom -work project_lib $Path_DUV/log_pkg.vhd
+  vcom -work project_lib $Path_DUV/fifo.vhd
+  vcom -work project_lib $Path_DUV/spike_detection.vhd
 }
 
 #------------------------------------------------------------------------------
 proc compile_tb { } {
   global Path_TB
   global Path_DUV
+  global Path_TOOLS
   puts "\nVHDL TB compilation :"
 
-  vcom -2008 $Path_TB/transactions_pkg.vhd
-  vcom -2008 $Path_TB/transaction_fifo_pkg.vhd
-  vcom -2008 $Path_TB/agent0_pkg.vhd
-  vcom -2008 $Path_TB/agent1_pkg.vhd
-  vcom -2008 $Path_TB/scoreboard_pkg.vhd
-  vcom -2008 $Path_TB/spike_detection_tb.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/logger_pkg.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/comparator_pkg.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/complex_comparator_pkg.vhd
+  vcom -work common_lib  -2008 $Path_TOOLS/common_lib/common_ctx.vhd
+
+  vcom -work project_lib -2008 $Path_TB/project_logger_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/project_ctx.vhd
+  vcom -work project_lib -2008 $Path_TB/transactions_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/transaction_fifo_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/agent0_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/agent1_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/scoreboard_pkg.vhd
+  vcom -work project_lib -2008 $Path_TB/spike_detection_tb.vhd
 }
 
 #------------------------------------------------------------------------------
 proc sim_start {TESTCASE } {
 
-  vsim -t 1ns -novopt  -GTESTCASE=$TESTCASE work.spike_detection_tb
+  vsim -t 1ns -novopt  -GTESTCASE=$TESTCASE project_lib.spike_detection_tb
 #  do wave.do
   add wave -r *
   wave refresh
@@ -39,7 +47,7 @@ proc sim_start {TESTCASE } {
 }
 
 #------------------------------------------------------------------------------
-proc do_all {TESTCASE } {
+proc do_all {TESTCASE} {
   compile_duv
   compile_tb
   sim_start $TESTCASE
@@ -53,14 +61,16 @@ if {[file exists work] == 0} {
 }
 
 vlib tlmvm
-vmap tlmvm ../tlmvm
+vmap tlmvm ../tools/tlmvm
 
 puts -nonewline "  Path_VHDL => "
 set Path_DUV     "../src"
-set Path_TB       "../src_tb"
+set Path_TB      "../src_tb"
+set Path_TOOLS   "../../tools"
 
 global Path_DUV
 global Path_TB
+global Path_TOOLS
 
 # start of sequence -------------------------------------------------
 

@@ -1,6 +1,7 @@
 
-
-use work.transactions_pkg.all;
+library project_lib;
+context project_lib.project_ctx;
+use project_lib.transactions_pkg.all;
 
 library tlmvm;
 use tlmvm.tlm_unbounded_fifo_pkg;

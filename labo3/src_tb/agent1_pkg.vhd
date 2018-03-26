@@ -6,9 +6,11 @@ use ieee.numeric_std.all;
 library tlmvm;
 context tlmvm.tlmvm_context;
 
-use work.output_transaction_fifo_pkg.all;
-use work.transactions_pkg.all;
-use work.spike_detection_pkg.all;
+library project_lib;
+context project_lib.project_ctx;
+use project_lib.output_transaction_fifo_pkg.all;
+use project_lib.transactions_pkg.all;
+use project_lib.spike_detection_pkg.all;
 
 package agent1_pkg is
 

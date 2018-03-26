@@ -3,7 +3,7 @@
 -- Institut REDS, Reconfigurable & Embedded Digital Systems
 --
 -- File         : fifo.vhd
--- Description  : 
+-- Description  :
 --
 -- Author       : Mike Meury
 -- Date         : 19.03.2018
@@ -61,7 +61,7 @@ architecture Behavioral of fifo is
     -----------
     -- types --
     -----------
-    type fifo_type is                  
+    type fifo_type is
         array (0 to FIFO_DEPTH_G-1) of std_logic_vector(DATASIZE_G-1 downto 0);
 
     ----------------------
@@ -153,7 +153,7 @@ begin
     ------------------------
     -- combinatorial part --
     ------------------------
-    -- Counters 
+    -- Counters
     count_o <= std_logic_vector(counter_s);
 
     -- Flags
