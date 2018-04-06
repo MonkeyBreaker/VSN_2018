@@ -38,7 +38,7 @@ package body agent1_pkg is
     begin
 
         counter := 0;
-        for i in 0 to 9 loop
+        while not fifo.is_empty loop
             logger.log_note("Monitor waiting for transaction number " & integer'image(counter));
             ok := false;
             while (not ok) loop

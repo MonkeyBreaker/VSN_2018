@@ -93,7 +93,8 @@ begin
 	 monitor: simulation_monitor
 	 generic map (drain_time => 50 ns,
                  beat_time => 500 ns,
-                 final_reporting => rep);
+                 final_reporting => rep,
+                 should_finish => false);
 
 
 	clk_proc : clock_generator(clk_sti, CLK_PERIOD);

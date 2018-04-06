@@ -64,7 +64,7 @@ package body agent0_pkg is
       when 0 => -- 1 spike
         counter := -(SIZE_FRAME/2);
         for i in 0 to SIZE_FRAME loop
-          transaction.data_in_trans := get_signed_vector(counter, 16);
+          transaction.data_in_trans := get_signed_vector(counter, transaction.data_in_trans'length);
           blocking_put(fifo, transaction);
           logger.log_note("Sequencer : Sent transaction number " & integer'image(counter));
           counter := counter + 1;
@@ -101,23 +101,34 @@ package body agent0_pkg is
     variable counter     : integer;
   begin
 
-    raise_objection;
+    -- raise_objection;
 
     counter := 0;
 
-    for i in 0 to 9 loop
+    while true loop
+
       logger.log_note("Driver waiting for transaction number " & integer'image(counter));
       blocking_get(fifo, transaction);
-      logger.log_note("Driver received transaction number " & integer'image(counter));
-      wait until falling_edge(clk);
-      -- TODO : Act on the DUV
+      logger.log_note("Driver received transaction number " & integer'image(counter)
+      & " Value received " & integer'image(get_integer_signed_value(transaction.data_in_trans)));
+
+      logger.log_note("port_output.ready " & to_string(port_output.ready));
+
+      wait until falling_edge(clk) and port_output.ready = '1';
+
+      logger.log_note("[DRIVER] Load Data  & enable data");
+      port_input.sample <= transaction.data_in_trans;
+      port_input.sample_valid <= '1';
 
       wait until falling_edge(clk);
+
+      logger.log_note("[DRIVER] Disable Data");
+      port_input.sample_valid <= '0';
 
       counter := counter + 1;
     end loop;
 
-    drop_objection;
+    -- drop_objection;
 
     wait;
 
@@ -136,13 +147,15 @@ package body agent0_pkg is
   begin
 
     counter := 0;
-    for i in 0 to 9 loop
+
+    while true loop
+
       logger.log_note("Monitor waiting for transaction number " & integer'image(counter));
       ok := false;
       while (not ok) loop
         wait until rising_edge(clk);
         -- TODO : Retrieve data and create a transaction
-        if (port_input.valid = '1') then
+        if (port_input.sample_valid = '1') then
           blocking_put(fifo, transaction);
           logger.log_note("Monitor received transaction number " & integer'image(counter));
           counter := counter + 1;

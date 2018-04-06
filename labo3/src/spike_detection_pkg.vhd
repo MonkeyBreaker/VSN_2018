@@ -9,7 +9,6 @@ package spike_detection_pkg is
     type port0_input_t is record
         sample               :  std_logic_vector(15 downto 0);
         sample_valid         :  std_logic;
-        valid : std_logic;
     end record;
 
     type port0_output_t is record
