@@ -42,7 +42,7 @@
       <command>vcom -2008 (%RMDBDIR%)/src_tb/agent1_pkg.vhd</command>
       <command>vcom -2008 (%RMDBDIR%)/src_tb/scoreboard_pkg.vhd</command>
       <command>vcom -2008 (%RMDBDIR%)/src_tb/spike_detection_tb.vhd</command>
-      <command>vsim -GERRNO=(%errno%) work.my_design_tb</command>
+      <command>vsim -GERRNO=(%errno%) work.spike_detection_tb</command>
       <command>run -all</command>
       <command>coverage attribute -name ERRNO -value (%INSTANCE%)</command>
       <command>coverage save (%ucdbfile%)</command>

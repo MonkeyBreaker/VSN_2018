@@ -37,9 +37,9 @@ proc compile_tb { } {
 }
 
 #------------------------------------------------------------------------------
-proc sim_start {TESTCASE } {
+proc sim_start {TESTCASE ERRNO} {
 
-  vsim -t 1ns -novopt  -GTESTCASE=$TESTCASE project_lib.spike_detection_tb
+  vsim -t 1ns -novopt  -GTESTCASE=$TESTCASE -GERRNO=$ERRNO project_lib.spike_detection_tb
 #  do wave.do
   add wave -r *
   wave refresh
@@ -47,10 +47,10 @@ proc sim_start {TESTCASE } {
 }
 
 #------------------------------------------------------------------------------
-proc do_all {TESTCASE} {
+proc do_all {TESTCASE ERRNO} {
   compile_duv
   compile_tb
-  sim_start $TESTCASE
+  sim_start $TESTCASE $ERRNO
 }
 
 ## MAIN #######################################################################
@@ -76,7 +76,7 @@ global Path_TOOLS
 
 if {$argc>0} {
   if {[string compare $1 "all"] == 0} {
-    do_all 0
+    do_all 0 0
   } elseif {[string compare $1 "comp_duv"] == 0} {
     compile_duv
   } elseif {[string compare $1 "comp_tb"] == 0} {
@@ -86,5 +86,5 @@ if {$argc>0} {
   }
 
 } else {
-  do_all 0
+  do_all 0 0
 }

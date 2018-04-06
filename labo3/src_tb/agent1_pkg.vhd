@@ -39,7 +39,7 @@ package body agent1_pkg is
 
         counter := 0;
         for i in 0 to 9 loop
-            report "Monitor waiting for transaction number " & integer'image(counter) severity note;
+            logger.log_note("Monitor waiting for transaction number " & integer'image(counter));
             ok := false;
             while (not ok) loop
                 wait until rising_edge(clk);
@@ -47,7 +47,7 @@ package body agent1_pkg is
                     -- TODO : Get information and build the transaction
 
                     blocking_put(fifo, transaction);
-                    report "Monitor received transaction number " & integer'image(counter) severity note;
+                    logger.log_note("Monitor received transaction number " & integer'image(counter));
                     counter := counter + 1;
                     ok := true;
                 end if;

@@ -41,17 +41,17 @@ package body scoreboard_pkg is
         counter := 0;
 
         for i in 0 to 9 loop
-            report "Scoreboard waiting for transaction number " & integer'image(counter) severity note;
+            logger.log_note("Scoreboard waiting for transaction number " & integer'image(counter));
             blocking_get(fifo_output, trans_output);
             blocking_get(fifo_input, trans_input);
-            report "Scoreboard received transaction number " & integer'image(counter) severity note;
-            expected := std_logic_vector(
-                unsigned(trans_input.a) +
-                unsigned(trans_input.b) +
-                unsigned(trans_input.c));
-            if (expected /= trans_output.r) then
-                report "Scoreboard : Error in transaction number " & integer'image(counter) severity error;
-            end if;
+            logger.log_note("Scoreboard received transaction number " & integer'image(counter));
+            --expected := std_logic_vector(
+            --    unsigned(trans_input.a) +
+            --    unsigned(trans_input.b) +
+            --    unsigned(trans_input.c));
+            --if (expected /= trans_output.r) then
+            --    report "Scoreboard : Error in transaction number " & integer'image(counter) severity error;
+            --end if;
             counter := counter + 1;
         end loop;
 

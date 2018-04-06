@@ -6,17 +6,18 @@
 -- Description  : This architecture is used to detect and extract a window that
 --                contain a neural spike. NOTE : due to some generics this
 --                version is probably unsynthetizable but will be used in a
---                verification course so it is not a problem 
+--                verification course so it is not a problem
 --
 -- Author       : Mike Meury
 -- Date         : 20.03.2018
 -- Version      : 1.0
 --
--- Dependencies : 
+-- Dependencies :
 --
 --| Modifications |------------------------------------------------------------
 -- Version   Author Date               Description
 -- 1.0       MIM    20.03.18           Creation
+-- 1.1       MIM    03.04.18           Correction 
 -------------------------------------------------------------------------------
 
 ------------------------
@@ -106,6 +107,7 @@ architecture behave of spike_detection is
     signal data_out_s                     : std_logic_vector(sample_i'length-1 downto 0);
     -- dummy counter
     signal counter_errno_s                : unsigned(sample_i'length-1 downto 0);
+    signal spike_detected_s               : std_logic;
 
 begin  -- behave
 
@@ -137,7 +139,7 @@ begin  -- behave
             empty_o => open,            -- not used
             count_o => fifo_count_s
             );
-    
+
     triangle_gen : if ERRNO = 7 generate
         process(clk_i, rst_i)
         begin
@@ -156,7 +158,7 @@ begin  -- behave
     norm_gen : if ERRNO /= 7 generate
         samples_spikes_o <= data_out_s when ERRNO /= 10 else
                             sample_i;
-        counter_errno_s <= (others => '0'); -- avoid metavalues
+        counter_errno_s <= (others => '0');  -- avoid metavalues
     end generate;
 
     ---------------------
@@ -236,19 +238,21 @@ begin  -- behave
     ------------------
     -- Fifo manager --
     ------------------
-    read_fifo_s <= '1' when (unsigned(fifo_count_s) > POSITION-1) or (ERRNO = 14) else
+    -- minus 2 because we want the spike to be the 50th sample. we must store
+    -- 49 sample so 49-1 = 50-2
+    read_fifo_s <= '1' when (unsigned(fifo_count_s) >= POSITION-2) or (ERRNO = 14) else
                    '0';
 
     -----------------------
     -- FSM to store data --
     -----------------------
     -- decoder
-    process (current_state_s, spike_s, counter_stored_samples_s, sample_valid_i)
+    process (current_state_s, spike_s, counter_stored_samples_s, write_sample_s)
     begin
 
         -- default value
         next_state_s         <= IDLE;
-        spike_detected_o     <= '0';
+        spike_detected_s     <= '0';
         rst_counter_sample_s <= '0';
 
         case current_state_s is
@@ -259,16 +263,17 @@ begin  -- behave
                     next_state_s <= IDLE;
                 end if;
             when SAVING_DATA =>
-                if counter_stored_samples_s >= (NB_ECH_WINDOW-1) and ERRNO /= 6 then
+                -- minus 2 because first is in IDLE state and last is in END_detection
+                if counter_stored_samples_s >= (NB_ECH_WINDOW-2) and ERRNO /= 6 then
                     next_state_s <= END_DETECTION;
                 else
                     next_state_s <= SAVING_DATA;
                 end if;
             when END_DETECTION =>
                 -- last sample
-                if sample_valid_i = '1' then
+                if write_sample_s = '1' then
                     if ERRNO /= 13 then
-                        spike_detected_o <= '1';
+                        spike_detected_s <= '1';
                     end if;
                     rst_counter_sample_s <= '1';
                     next_state_s         <= IDLE;
@@ -332,6 +337,18 @@ begin  -- behave
             else
                 samples_spikes_valid_o <= '0';
             end if;
+        end if;
+    end process;
+
+    -----------------------------
+    -- Spike detected register --
+    -----------------------------
+    process(clk_i, rst_i)
+    begin
+        if rst_i = '1' then
+            spike_detected_o <= '0';
+        elsif rising_edge(clk_i) then
+            spike_detected_o <= spike_detected_s;
         end if;
     end process;
 

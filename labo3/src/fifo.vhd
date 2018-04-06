@@ -3,7 +3,7 @@
 -- Institut REDS, Reconfigurable & Embedded Digital Systems
 --
 -- File         : fifo.vhd
--- Description  :
+-- Description  : 
 --
 -- Author       : Mike Meury
 -- Date         : 19.03.2018
@@ -108,8 +108,9 @@ begin
                     else
                         head_s <= head_s + 1;
                     end if;
+                end if;
                 -- Read
-                elsif rd_en_i = '1' and counter_s /= 0 then
+                if rd_en_i = '1' and counter_s /= 0 then
                     -- counter decrement
                     -- counter must be decremented only if we are not
                     -- writing and reading the same channel AND if the fifo
@@ -153,7 +154,7 @@ begin
     ------------------------
     -- combinatorial part --
     ------------------------
-    -- Counters
+    -- Counters 
     count_o <= std_logic_vector(counter_s);
 
     -- Flags
