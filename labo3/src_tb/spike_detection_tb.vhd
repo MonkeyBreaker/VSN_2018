@@ -42,6 +42,9 @@ use work.output_transaction_fifo_pkg.all;
 use work.agent0_pkg.all;
 use work.scoreboard_pkg.all;
 
+library project_lib;
+context project_lib.project_ctx;
+
 entity spike_detection_tb is
     generic (
         TESTCASE : integer := 0;
@@ -95,6 +98,11 @@ begin
                  beat_time => 500 ns,
                  final_reporting => rep,
                  should_finish => false);
+
+   -- Logger initialization
+   logger.enable_write_on_file;
+   logger.set_log_file_name("LOG.txt");
+   logger.set_severity_level(level => note);
 
 
 	clk_proc : clock_generator(clk_sti, CLK_PERIOD);

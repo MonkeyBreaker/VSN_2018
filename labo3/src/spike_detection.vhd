@@ -6,18 +6,17 @@
 -- Description  : This architecture is used to detect and extract a window that
 --                contain a neural spike. NOTE : due to some generics this
 --                version is probably unsynthetizable but will be used in a
---                verification course so it is not a problem
+--                verification course so it is not a problem 
 --
 -- Author       : Mike Meury
 -- Date         : 20.03.2018
 -- Version      : 1.0
 --
--- Dependencies :
+-- Dependencies : 
 --
 --| Modifications |------------------------------------------------------------
 -- Version   Author Date               Description
 -- 1.0       MIM    20.03.18           Creation
--- 1.1       MIM    03.04.18           Correction 
 -------------------------------------------------------------------------------
 
 ------------------------
@@ -238,9 +237,7 @@ begin  -- behave
     ------------------
     -- Fifo manager --
     ------------------
-    -- minus 2 because we want the spike to be the 50th sample. we must store
-    -- 49 sample so 49-1 = 50-2
-    read_fifo_s <= '1' when (unsigned(fifo_count_s) >= POSITION-2) or (ERRNO = 14) else
+    read_fifo_s <= '1' when (unsigned(fifo_count_s) > POSITION-1) or (ERRNO = 14) else
                    '0';
 
     -----------------------
@@ -263,9 +260,17 @@ begin  -- behave
                     next_state_s <= IDLE;
                 end if;
             when SAVING_DATA =>
-                -- minus 2 because first is in IDLE state and last is in END_detection
-                if counter_stored_samples_s >= (NB_ECH_WINDOW-2) and ERRNO /= 6 then
-                    next_state_s <= END_DETECTION;
+                if counter_stored_samples_s = (NB_ECH_WINDOW-1) and ERRNO /= 6 then
+                    if write_sample_s = '1' then
+                        -- will be the 150th
+                        if ERRNO /= 13 then
+                            spike_detected_s <= '1';
+                        end if;
+                        rst_counter_sample_s <= '1';
+                        next_state_s         <= IDLE;
+                    else
+                        next_state_s <= END_DETECTION;
+                    end if;
                 else
                     next_state_s <= SAVING_DATA;
                 end if;
@@ -355,7 +360,7 @@ begin  -- behave
     ----------------------
     -- Ready generation --
     ----------------------
-    ready_o <= '1' when ERRNO /= 8 else
+    ready_o <= '1' when ERRNO /= 4 else
                '0';
 
 end architecture;  -- behave

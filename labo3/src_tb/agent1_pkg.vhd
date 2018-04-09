@@ -38,17 +38,23 @@ package body agent1_pkg is
     begin
 
         counter := 0;
-        while not fifo.is_empty loop
-            logger.log_note("Monitor waiting for transaction number " & integer'image(counter));
+        while true loop
+            logger.log_note("[Monitor 1] waiting for transaction number " & integer'image(counter));
             ok := false;
-            while (not ok) loop
+            while ok = false loop
                 wait until rising_edge(clk);
                 if (port_output.samples_spikes_valid = '1') then
-                    -- TODO : Get information and build the transaction
 
-                    blocking_put(fifo, transaction);
-                    logger.log_note("Monitor received transaction number " & integer'image(counter));
+                    transaction.data_out_trans(counter) := port_output.samples_spikes;
                     counter := counter + 1;
+
+                    if (port_output.spike_detected = '1' or counter = 150) then -- last sample received
+                      logger.log_note("[Monitor 1] Sending to scoreboard " & integer'image(counter));
+                      blocking_put(fifo, transaction);
+                      counter := 0;
+                    end if;
+
+                    logger.log_note("[Monitor 1] received transaction number " & integer'image(counter));
                     ok := true;
                 end if;
             end loop;
