@@ -32,21 +32,28 @@ package body scoreboard_pkg is
     ) is
         variable trans_input  : input_transaction_t;
         variable trans_output : output_transaction_t;
-        variable counter      : integer;
+        variable counter_out      : integer;
+        variable counter_in      : integer;
         variable expected     : std_logic_vector(7 downto 0);
     begin
 
         -- raise_objection;
 
-        counter := 0;
+        counter_in := 0;
+        counter_out := 0;
 
         while true loop
-            logger.log_note("Scoreboard waiting for transaction number " & integer'image(counter));
-            blocking_get(fifo_output, trans_output);
-            blocking_get(fifo_input, trans_input);
-            logger.log_note("Scoreboard received transaction number " & integer'image(counter));
 
-            counter := counter + 1;
+            blocking_get(fifo_input, trans_input);
+            logger.log_note("[Scoreboard] received monitor 0 " & integer'image(counter_out));
+            counter_out := counter_out + 1;
+
+            if(fifo_output.is_empty = false) then
+              blocking_get(fifo_output, trans_output);
+              logger.log_note("[Scoreboard] received monitor 1 " & integer'image(counter_in));
+              counter_in := counter_in + 1;
+            end if;
+
         end loop;
 
         -- drop_objection;
