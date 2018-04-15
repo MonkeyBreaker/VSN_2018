@@ -61,7 +61,7 @@ package body agent0_pkg is
     counter := 0;
 
     case testcase is
-      when 0 => -- 1 spike
+      when 1 => -- 1 spike
         counter := -(SIZE_FRAME/2);
         for i in 0 to SIZE_FRAME loop
           transaction.data_in_trans := get_signed_vector(counter, transaction.data_in_trans'length);
@@ -70,9 +70,14 @@ package body agent0_pkg is
           counter := counter + 1;
         end loop;
 
-      when 1 => -- 2 spikes
+      when 0 => -- 2 spikes
         for i in 0 to SIZE_FRAME loop
           -- TODO : Prepare a transaction
+          if (i = SIZE_FRAME/4) or (i = 3*SIZE_FRAME/4) then
+            transaction.data_in_trans := get_signed_vector(10000, transaction.data_in_trans'length);
+          else
+            transaction.data_in_trans := get_signed_vector(0, transaction.data_in_trans'length);
+          end if;
 
           blocking_put(fifo, transaction);
           logger.log_note("[Sequencer] : Sent transaction number " & integer'image(counter));

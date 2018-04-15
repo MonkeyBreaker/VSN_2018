@@ -37,6 +37,7 @@ package body scoreboard_pkg is
         variable trans_output : output_transaction_t;
         variable counter_out         : integer;
         variable counter_in          : integer;
+        variable counter_samples_received_bounded          : integer;
         variable counter_fifo_0      : integer;
         variable expected     : std_logic_vector(7 downto 0);
         variable sample_casted             : signed(15 downto 0);
@@ -56,6 +57,7 @@ package body scoreboard_pkg is
         --------------------
         -- initialization --
         --------------------
+        counter_samples_received_bounded := 0;
         counter_in := 0;
         counter_out := 0;
         counter_fifo_0 := 0;
@@ -88,7 +90,8 @@ package body scoreboard_pkg is
             end if;
 
             blocking_get(fifo_input, trans_input);
-            -- logger.log_note("[Scoreboard] received monitor 0 " & integer'image(counter_in));
+            logger.log_note("[Scoreboard] monitor 0 : transaction " & integer'image(counter_in));
+            counter_in := counter_in +1;
 
             logger.log_note("[Scoreboard] monitor 0, value received : " & integer'image(to_integer(signed(trans_input.data_in_trans))));
 
@@ -109,8 +112,8 @@ package body scoreboard_pkg is
             sample_casted := signed(trans_input.data_in_trans);
             sample_casted_square := sample_casted*sample_casted;
 
-            if (counter_in >= 1) then -- WHY THE F*CK the first value stored in the FIFO is not read in the DUT !? :@
-              if(counter_in >= window_size+1) then
+            if (counter_samples_received_bounded >= 1) then -- WHY THE F*CK the first value stored in the FIFO is not read in the DUT !? :@
+              if(counter_samples_received_bounded >= window_size+1) then
                 mean_ref := mean_ref + (sample_casted - mean_ref)/window_size;
                 intermediate_sum_reduced_ref := (sample_casted_square + intermediate_sum_reduced_ref) - (intermediate_sum_reduced_ref)/window_size;
               else
@@ -130,17 +133,17 @@ package body scoreboard_pkg is
               logger.log_note("[Scoreboard] deviation_standard_ref        : " & integer'image(to_integer(deviation_standard_ref)));
               logger.log_note("[Scoreboard] deviation_standard_ref*factor_square        : " & integer'image(to_integer( deviation_standard_ref*factor_square)));
 
-              if (deviation_ref > (deviation_standard_ref*factor_square)) and (counter_in >= window_size+1) then
+              if (deviation_ref > (deviation_standard_ref*factor_square)) and (counter_samples_received_bounded >= window_size+1) then
                 is_spike_ref := true;
                 logger.log_note("[Scoreboard] spike detected");
-                -- counter_in := 0;
+                -- counter_samples_received_bounded := 0;
               else
                 is_spike_ref := false;
               end if;
             end if;
 
-            if (counter_in < window_size+1) then
-              counter_in := counter_in + 1;
+            if (counter_samples_received_bounded < window_size+1) then
+              counter_samples_received_bounded := counter_samples_received_bounded + 1;
             end if;
 
         end loop;
