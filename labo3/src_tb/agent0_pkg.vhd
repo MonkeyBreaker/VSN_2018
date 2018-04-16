@@ -73,7 +73,7 @@ package body agent0_pkg is
       when 0 => -- 2 spikes
         for i in 0 to SIZE_FRAME loop
           -- TODO : Prepare a transaction
-          if (i = SIZE_FRAME/4) or (i = 3*SIZE_FRAME/4) then
+          if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = 3*SIZE_FRAME/4) then
             transaction.data_in_trans := get_signed_vector(10000, transaction.data_in_trans'length);
           else
             transaction.data_in_trans := get_signed_vector(0, transaction.data_in_trans'length);
