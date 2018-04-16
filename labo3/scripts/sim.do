@@ -86,5 +86,6 @@ if {$argc>0} {
   }
 
 } else {
-  do_all 0 0
+  # do_all 0 0
+  do_all 1 0
 }

@@ -9,6 +9,10 @@ context tlmvm.tlmvm_context;
 library project_lib;
 context project_lib.project_ctx;
 
+library osvvm;
+use osvvm.all;
+use osvvm.RandomPkg.all;
+
 use project_lib.input_transaction_fifo_pkg.all;
 use project_lib.input_transaction_fifo1_pkg.all;
 use project_lib.output_transaction_fifo_pkg.all;
@@ -43,6 +47,10 @@ end package;
 package body agent0_pkg is
 
   constant SIZE_FRAME : integer := 1000;
+  constant MAX_POSITIVE_VALUE : integer :=  3000;
+  constant MAX_NEGATIVE_VALUE : integer := -3000;
+  constant BUFFERIZE          : integer := 128;
+  constant WINDOW_SIZE        : integer := 150;
 
   impure function get_signed_vector(nb : integer; length : integer) return std_logic_vector is
   begin
@@ -54,6 +62,79 @@ package body agent0_pkg is
     return to_integer(signed(val));
   end get_integer_signed_value;
 
+  procedure generate_data(fifo : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
+                          nb_samples : integer; nb_spikes : integer; factor : integer; random_seed : integer) is
+    variable var_rand : RandomPType;
+    variable transaction : input_transaction_t;
+    variable data : integer;
+    variable mean : integer;
+    variable deviantion : integer;
+    variable is_spike : boolean;
+    variable last_spike : integer;
+    variable spike_random : integer;
+    variable nb_spike : integer;
+  begin
+
+    --------------------------
+    -- Initialize variables --
+    --------------------------
+    last_spike := 0;
+    nb_spike := 0;
+
+    --------------------------------------------------
+    -- Check if it's possible to cast enough spikes --
+    --------------------------------------------------
+
+    if((nb_samples/150) < nb_spikes) then
+      logger.log_error("[Sequencer] Not enough space to place the spikes in the frame");
+    end if;
+
+    ---------------
+    -- Init seed --
+    ---------------
+    var_rand.InitSeed(random_seed);
+
+    -----------------------
+    -- Generate the data --
+    -----------------------
+    for i in 0 to nb_samples loop
+      data := var_rand.Uniform(MAX_NEGATIVE_VALUE, MAX_POSITIVE_VALUE);
+
+      ----------------------------
+      -- Compute necessary data --
+      ----------------------------
+
+      --------------------
+      -- Generate spike --
+      --------------------
+      spike_random := var_rand.Uniform(-10, 10);
+      -- Only generate a spike ~10% of the time
+      if (i > last_spike+WINDOW_SIZE) and (spike_random < 1 and spike_random > -1) and nb_spikes >= nb_spike then
+        data := deviantion*(factor+1);
+        last_spike := i;
+        nb_spike := nb_spike + 1;
+        logger.log_error("[Sequencer] : Generate spike");
+      elsif is_spike = true then     -- Do not generate a spike by chance
+        data := data/10;
+      end if;
+
+      if (i < BUFFERIZE) then
+        mean := mean + data/BUFFERIZE;
+        deviantion := data**2 + deviantion;
+      else
+        mean := mean + (data-mean)/BUFFERIZE;
+        deviantion := data**2 + deviantion - deviantion/WINDOW_SIZE;
+      end if;
+
+      is_spike := ((data-mean)**2) > deviantion*factor and i > BUFFERIZE;
+
+      transaction.data_in_trans :=  get_signed_vector(data, transaction.data_in_trans'length);
+      blocking_put(fifo, transaction);
+
+    end loop;
+
+  end generate_data;
+
   procedure sequencer(variable fifo     : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
                       constant testcase : in    integer) is
     variable transaction : input_transaction_t;
@@ -63,14 +144,8 @@ package body agent0_pkg is
     counter := 0;
 
     case testcase is
-      when 1 => -- 1 spike
-        counter := -(SIZE_FRAME/2);
-        for i in 0 to SIZE_FRAME loop
-          transaction.data_in_trans := get_signed_vector(counter, transaction.data_in_trans'length);
-          blocking_put(fifo, transaction);
-          logger.log_note("[Sequencer] : Sent transaction number " & integer'image(counter));
-          counter := counter + 1;
-        end loop;
+      when 1 => -- random
+        generate_data(fifo, 1500, 4, 15, 1);
 
       when 0 => -- 2 spikes
         for i in 0 to SIZE_FRAME loop
