@@ -13,6 +13,9 @@ library osvvm;
 use osvvm.all;
 use osvvm.RandomPkg.all;
 
+use ieee.std_logic_textio.all;
+use std.textio.all;
+
 use project_lib.input_transaction_fifo_pkg.all;
 use project_lib.input_transaction_fifo1_pkg.all;
 use project_lib.output_transaction_fifo_pkg.all;
@@ -40,7 +43,6 @@ package agent0_pkg is
                     );
 
   shared variable stop_monitor_0 : boolean := false;
-
 end package;
 
 
@@ -51,6 +53,7 @@ package body agent0_pkg is
   constant MAX_NEGATIVE_VALUE : integer := -3000;
   constant BUFFERIZE          : integer := 128;
   constant WINDOW_SIZE        : integer := 150;
+  constant INPUT_FILE_NAME : string                := "../src_tb/input_values.txt";
 
   impure function get_signed_vector(nb : integer; length : integer) return std_logic_vector is
   begin
@@ -139,6 +142,9 @@ package body agent0_pkg is
                       constant testcase : in    integer) is
     variable transaction : input_transaction_t;
     variable counter     : integer;
+    variable value_v     : integer;
+    variable input_line_v : line;
+    file input_file_f     : text;
   begin
     raise_objection;
     counter := 0;
@@ -146,6 +152,26 @@ package body agent0_pkg is
     case testcase is
       when 1 => -- random
         generate_data(fifo, 1500, 4, 15, 1);
+      when 2 =>
+        -- open source file
+        file_open(input_file_f, INPUT_FILE_NAME, read_mode);
+
+        -- we read file until we reach the end
+        while (not endfile(input_file_f)) loop
+
+          -- Read line in file
+          readline(input_file_f, input_line_v);
+
+          -- Extract value
+          read(input_line_v, value_v);
+
+          transaction.data_in_trans := get_signed_vector(value_v, transaction.data_in_trans'length);
+
+          blocking_put(fifo, transaction);
+        end loop;
+
+        -- close file
+        file_close(input_file_f);
 
       when 0 => -- 2 spikes
         for i in 0 to SIZE_FRAME loop

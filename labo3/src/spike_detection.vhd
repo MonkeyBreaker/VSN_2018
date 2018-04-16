@@ -6,13 +6,13 @@
 -- Description  : This architecture is used to detect and extract a window that
 --                contain a neural spike. NOTE : due to some generics this
 --                version is probably unsynthetizable but will be used in a
---                verification course so it is not a problem 
+--                verification course so it is not a problem
 --
 -- Author       : Mike Meury
 -- Date         : 20.03.2018
 -- Version      : 1.0
 --
--- Dependencies : 
+-- Dependencies :
 --
 --| Modifications |------------------------------------------------------------
 -- Version   Author Date               Description
@@ -113,7 +113,7 @@ begin  -- behave
     -----------------------
     -- Inputs conversion --
     -----------------------
-    sample_s <= signed(sample_i);
+    sample_s <= signed(sample_i) when rising_edge(clk_i) else sample_s;
 
     ----------
     -- FIFO --

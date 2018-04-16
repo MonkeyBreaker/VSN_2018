@@ -50,15 +50,15 @@ package body scoreboard_pkg is
 
         variable expected     : std_logic_vector(7 downto 0);
         variable sample_casted             : signed(15 downto 0);
-        variable sample_casted_square             : signed(31 downto 0);
+        variable sample_casted_square             : signed(36 downto 0);
         variable mean_ref                  : signed(31 downto 0);
         variable deviation_standard_ref    : signed(63 downto 0);
-        variable intermediate_sum_ref              : signed(63 downto 0);
-        variable intermediate_sum_reduced_ref      : signed(31 downto 0);
+        variable intermediate_sum_ref              : signed(47 downto 0);
+        variable intermediate_sum_reduced_ref      : signed(47 downto 0);
         variable deviation_ref                     : signed(63 downto 0);
 
         -- When the ref detect a spike, the DUT will send us the data after 151 samples : 50 because of the implementation of the DUT, 100 of the samples after the spike, 1 for data aligned
-        constant nb_samples_to_wait_after_spike_detection : integer := 151;
+        constant nb_samples_to_wait_after_spike_detection : integer := 152;
         constant time_before_timeout : time := 20 ns;
 
     begin
@@ -138,6 +138,15 @@ package body scoreboard_pkg is
 
                 -- Clear FIFO
                 blocking_get(fifo_output, trans_output);
+
+                -- Check that the values sent from the DUT are the same that we determined
+                for i in 0 to (trans_output.data_out_trans'length)-1 loop
+                  blocking_get(fifo_monitor_0, trans_input);
+                  logger.log_note("[Scoreboard] monitor 0, value received : " & integer'image(to_integer(signed(trans_input.data_in_trans))));
+                  logger.log_note("[Scoreboard] monitor 1, value received : " & integer'image(to_integer(signed(trans_output.data_out_trans(i)))));
+
+                  counter_fifo_0 := counter_fifo_0-1;
+                end loop;
               end if;
             end if;
 
@@ -183,7 +192,7 @@ package body scoreboard_pkg is
               ---------------------------------
 
               sample_casted := signed(trans_input.data_in_trans);
-              sample_casted_square := sample_casted*sample_casted;
+              sample_casted_square := resize(sample_casted*sample_casted, sample_casted_square'length);
 
               if (counter_samples_received_bounded >= 1) then -- WHY THE F*CK the first value stored in the FIFO is not read in the DUT !? :@
 
@@ -192,14 +201,14 @@ package body scoreboard_pkg is
                 --------------------------------------------------------------------------------------
                 if(counter_samples_received_bounded >= window_size+1) then
                   mean_ref := mean_ref + (sample_casted - mean_ref)/window_size;
-                  intermediate_sum_reduced_ref := (sample_casted_square + intermediate_sum_reduced_ref) - (intermediate_sum_reduced_ref)/window_size;
+                  intermediate_sum_reduced_ref := (resize(sample_casted_square, intermediate_sum_reduced_ref'length) + intermediate_sum_reduced_ref) - (intermediate_sum_reduced_ref)/window_size;
                 else
                   mean_ref := mean_ref + (sample_casted)/window_size;
-                  intermediate_sum_reduced_ref := sample_casted_square + (intermediate_sum_reduced_ref);
+                  intermediate_sum_reduced_ref := resize(sample_casted_square, intermediate_sum_reduced_ref'length) + (intermediate_sum_reduced_ref);
                 end if;
 
                 deviation_ref := (sample_casted-mean_ref)*(sample_casted-mean_ref);
-                deviation_standard_ref := (intermediate_sum_reduced_ref/window_size) - mean_ref*mean_ref;
+                deviation_standard_ref := resize((intermediate_sum_reduced_ref/window_size),deviation_standard_ref'length) - mean_ref*mean_ref;
 
                 -- logger.log_note("[Scoreboard] sample_casted                 : " & integer'image(to_integer(sample_casted)));
                 -- logger.log_note("[Scoreboard] sample_casted_square          : " & integer'image(to_integer(sample_casted_square)));
