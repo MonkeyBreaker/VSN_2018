@@ -35,6 +35,8 @@ package agent0_pkg is
                     signal port_output : in    port0_output_t
                     );
 
+  shared variable stop_monitor_0 : boolean := false;
+
 end package;
 
 
@@ -73,7 +75,7 @@ package body agent0_pkg is
       when 0 => -- 2 spikes
         for i in 0 to SIZE_FRAME loop
           -- TODO : Prepare a transaction
-          if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = 3*SIZE_FRAME/4) then
+          if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = SIZE_FRAME-101) then -- (i = 3*SIZE_FRAME/4) or
             transaction.data_in_trans := get_signed_vector(10000, transaction.data_in_trans'length);
           else
             transaction.data_in_trans := get_signed_vector(0, transaction.data_in_trans'length);
@@ -104,6 +106,8 @@ package body agent0_pkg is
                    ) is
     variable transaction : input_transaction_t;
     variable counter     : integer;
+    variable timeout_ok     : boolean;
+    constant time_before_timeout : time := 5 ns;
   begin
 
     -- raise_objection;
@@ -113,9 +117,15 @@ package body agent0_pkg is
     while true loop
 
       logger.log_note("[Driver] waiting for transaction number " & integer'image(counter));
-      blocking_get(fifo, transaction);
-      logger.log_note("[Driver] received transaction number " & integer'image(counter)
-      & " Value received " & integer'image(get_integer_signed_value(transaction.data_in_trans)));
+      blocking_timeout_get(fifo, transaction, time_before_timeout, timeout_ok);
+
+      if (timeout_ok = true) then
+        logger.log_note("[Driver] received transaction number " & integer'image(counter)
+        & " Value received " & integer'image(get_integer_signed_value(transaction.data_in_trans)));
+      else
+        stop_monitor_0 := true;
+        logger.log_note("[Driver] Timeout ");
+      end if;
 
       logger.log_note("[Driver] port_output.ready " & to_string(port_output.ready));
 
@@ -135,7 +145,7 @@ package body agent0_pkg is
 
     -- drop_objection;
 
-    wait;
+    -- wait;
 
   end driver;
 
@@ -153,7 +163,7 @@ package body agent0_pkg is
 
     counter := 0;
 
-    while true loop
+    while stop_monitor_0 = false loop
 
       logger.log_note("[Monitor 0] waiting for transaction number " & integer'image(counter));
       ok := false;
@@ -171,7 +181,9 @@ package body agent0_pkg is
       end loop;
     end loop;
 
-    wait;
+    logger.log_note("[Monitor 0] Stopped ");
+
+    -- wait;
 
   end monitor;
 

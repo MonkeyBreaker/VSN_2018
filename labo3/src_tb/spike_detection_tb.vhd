@@ -87,7 +87,10 @@ architecture testbench of spike_detection_tb is
 
   	procedure rep(finish_status: finish_status_t) is
   	begin
-  		report "I finished, yippee";
+      -- Summary and close logger
+      logger.log_note("[END] I finished, yippee");
+      logger.final_report;
+      logger.close_file;
   	end rep;
 
 begin
