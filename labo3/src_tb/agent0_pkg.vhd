@@ -25,7 +25,8 @@ use project_lib.spike_detection_pkg.all;
 package agent0_pkg is
 
   procedure sequencer(variable fifo     : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
-                      constant testcase : in    integer);
+                      constant testcase : in    integer;
+                      constant random_seed : in integer);
 
   procedure driver(variable fifo      : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
                    signal clk         : in    std_logic;
@@ -112,11 +113,11 @@ package body agent0_pkg is
       --------------------
       spike_random := var_rand.Uniform(-10, 10);
       -- Only generate a spike ~10% of the time
-      if (i > last_spike+WINDOW_SIZE) and (spike_random < 1 and spike_random > -1) and nb_spikes >= nb_spike then
+      if (i > last_spike+WINDOW_SIZE+2) and (spike_random < 1 and spike_random > -1) and nb_spikes >= nb_spike then
         data := deviantion*(factor+1);
         last_spike := i;
         nb_spike := nb_spike + 1;
-        logger.log_error("[Sequencer] : Generate spike");
+        logger.log_note("[Sequencer] : Generate spike");
       elsif is_spike = true then     -- Do not generate a spike by chance
         data := data/10;
       end if;
@@ -139,7 +140,8 @@ package body agent0_pkg is
   end generate_data;
 
   procedure sequencer(variable fifo     : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
-                      constant testcase : in    integer) is
+                      constant testcase : in    integer;
+                      constant random_seed : in integer) is
     variable transaction : input_transaction_t;
     variable counter     : integer;
     variable value_v     : integer;
@@ -150,8 +152,23 @@ package body agent0_pkg is
     counter := 0;
 
     case testcase is
+      when 0 => -- 2 spikes
+        for i in 0 to SIZE_FRAME loop
+          -- TODO : Prepare a transaction
+          if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = SIZE_FRAME-101) then -- (i = 3*SIZE_FRAME/4) or
+            transaction.data_in_trans := get_signed_vector(10000, transaction.data_in_trans'length);
+          else
+            transaction.data_in_trans := get_signed_vector(0, transaction.data_in_trans'length);
+          end if;
+
+          blocking_put(fifo, transaction);
+          logger.log_note("[Sequencer] : Sent transaction number " & integer'image(counter));
+          counter := counter + 1;
+        end loop;
+
       when 1 => -- random
-        generate_data(fifo, 1500, 4, 15, 1);
+        generate_data(fifo, 1500, 4, 15, random_seed);
+
       when 2 =>
         -- open source file
         file_open(input_file_f, INPUT_FILE_NAME, read_mode);
@@ -172,20 +189,6 @@ package body agent0_pkg is
 
         -- close file
         file_close(input_file_f);
-
-      when 0 => -- 2 spikes
-        for i in 0 to SIZE_FRAME loop
-          -- TODO : Prepare a transaction
-          if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = SIZE_FRAME-101) then -- (i = 3*SIZE_FRAME/4) or
-            transaction.data_in_trans := get_signed_vector(10000, transaction.data_in_trans'length);
-          else
-            transaction.data_in_trans := get_signed_vector(0, transaction.data_in_trans'length);
-          end if;
-
-          blocking_put(fifo, transaction);
-          logger.log_note("[Sequencer] : Sent transaction number " & integer'image(counter));
-          counter := counter + 1;
-        end loop;
 
       when others =>
         logger.log_error("[Sequencer] : Unsupported testcase");

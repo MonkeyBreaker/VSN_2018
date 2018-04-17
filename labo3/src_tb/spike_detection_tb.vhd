@@ -48,7 +48,9 @@ context project_lib.project_ctx;
 entity spike_detection_tb is
     generic (
         TESTCASE : integer := 0;
-        ERRNO    : integer := 0
+        ERRNO    : integer := 0;
+        RANDOM_SEED : integer := 0;
+        LOG_FILE    : string := "default.txt"
     );
 
 end spike_detection_tb;
@@ -104,7 +106,7 @@ begin
 
    -- Logger initialization
    logger.enable_write_on_file;
-   logger.set_log_file_name("LOG.txt");
+   logger.set_log_file_name(LOG_FILE);
    logger.set_severity_level(level => note);
 
 
@@ -112,7 +114,7 @@ begin
 
 	rst_proc : simple_startup_reset(rst_sti, 2*CLK_PERIOD);
 
-    agent0_sequencer : work.agent0_pkg.sequencer(fifo_seq0_to_driver0, TESTCASE);
+    agent0_sequencer : work.agent0_pkg.sequencer(fifo_seq0_to_driver0, TESTCASE, RANDOM_SEED);
 
     agent0_driver : work.agent0_pkg.driver(fifo_seq0_to_driver0,
                                            clk_sti,

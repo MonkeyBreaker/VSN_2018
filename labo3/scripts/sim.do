@@ -37,9 +37,9 @@ proc compile_tb { } {
 }
 
 #------------------------------------------------------------------------------
-proc sim_start {TESTCASE ERRNO} {
+proc sim_start {TESTCASE ERRNO RANDOM_SEED LOG_FILE} {
 
-  vsim -t 1ns -novopt  -GTESTCASE=$TESTCASE -GERRNO=$ERRNO project_lib.spike_detection_tb
+  vsim -t 1ns -novopt  -GTESTCASE=$TESTCASE -GERRNO=$ERRNO -GRANDOM_SEED=$RANDOM_SEED -GLOG_FILE=$LOG_FILE project_lib.spike_detection_tb
 #  do wave.do
   add wave -r *
   wave refresh
@@ -47,10 +47,10 @@ proc sim_start {TESTCASE ERRNO} {
 }
 
 #------------------------------------------------------------------------------
-proc do_all {TESTCASE ERRNO} {
+proc do_all {TESTCASE ERRNO RANDOM_SEED LOG_FILE} {
   compile_duv
   compile_tb
-  sim_start $TESTCASE $ERRNO
+  sim_start $TESTCASE $ERRNO $RANDOM_SEED $LOG_FILE
 }
 
 ## MAIN #######################################################################
@@ -86,6 +86,12 @@ if {$argc>0} {
   }
 
 } else {
-  # do_all 0 0
-  do_all 2 0
+  # TESTCASE ERRNO RANDOM_SEED LOG_FILE
+   do_all 0 0 0 "LOG_0.txt"
+   do_all 2 0 0 "LOG_1.txt"
+   do_all 1 0 0 "LOG_2.txt"
+   do_all 1 0 1 "LOG_3.txt"
+   do_all 1 0 2 "LOG_4.txt"
+   do_all 1 0 3 "LOG_5.txt"
+   do_all 1 0 4 "LOG_6.txt"
 }
