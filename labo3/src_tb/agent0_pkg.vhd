@@ -50,8 +50,8 @@ end package;
 package body agent0_pkg is
 
   constant SIZE_FRAME : integer := 1000;
-  constant MAX_POSITIVE_VALUE : integer :=  3000;
-  constant MAX_NEGATIVE_VALUE : integer := -3000;
+  constant MAX_POSITIVE_VALUE : integer :=  8000;
+  constant MAX_NEGATIVE_VALUE : integer := -MAX_POSITIVE_VALUE;
   constant BUFFERIZE          : integer := 128;
   constant WINDOW_SIZE        : integer := 150;
   constant INPUT_FILE_NAME : string                := "../src_tb/input_values.txt";
@@ -113,8 +113,10 @@ package body agent0_pkg is
       --------------------
       spike_random := var_rand.Uniform(-10, 10);
       -- Only generate a spike ~10% of the time
-      if (i > last_spike+WINDOW_SIZE+2) and (spike_random < 1 and spike_random > -1) and nb_spikes >= nb_spike then
-        data := deviantion*(factor+1);
+      if (i > last_spike+WINDOW_SIZE) and (spike_random < 1 and spike_random > -1) and nb_spikes > nb_spike then
+
+        data := deviantion*(factor);
+
         last_spike := i;
         nb_spike := nb_spike + 1;
         logger.log_note("[Sequencer] : Generate spike");
@@ -130,7 +132,7 @@ package body agent0_pkg is
         deviantion := data**2 + deviantion - deviantion/WINDOW_SIZE;
       end if;
 
-      is_spike := ((data-mean)**2) > deviantion*factor and i > BUFFERIZE;
+      is_spike := ((data-mean)**2) > deviantion*factor and i >= BUFFERIZE;
 
       transaction.data_in_trans :=  get_signed_vector(data, transaction.data_in_trans'length);
       blocking_put(fifo, transaction);

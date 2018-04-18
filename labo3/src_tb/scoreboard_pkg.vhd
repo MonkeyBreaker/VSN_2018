@@ -38,6 +38,7 @@ package body scoreboard_pkg is
         variable spike_detected_ref              : boolean;
         variable data_match                      : boolean;
         variable timeout_ok                         : boolean;
+        variable new_spike_at_150_sample         : boolean;
 
         variable counter_out         : integer;
         variable counter_in          : integer;
@@ -78,7 +79,8 @@ package body scoreboard_pkg is
         factor_square := 15; -- seriously ... already squared !? Arghhhhh, and why do I need to check the DUT for know this value :@
         window_size := 128; -- Not 128, because the first sample is dropped
         spike_detected_ref := false;
-       timeout_ok := false;
+        timeout_ok := false;
+        new_spike_at_150_sample := false;
         intermediate_sum_ref := (others => '0');
         intermediate_sum_reduced_ref := (others => '0');
         waiting_to_receive_spike := nb_samples_to_wait_after_spike_detection;
@@ -108,38 +110,64 @@ package body scoreboard_pkg is
 
 
             if(fifo_output.is_empty = false) and (waiting_to_receive_spike = 0 or timeout_ok = false) then
+
+              ------------------------------
+              -- Read data from monitor 1 --
+              ------------------------------
               blocking_get(fifo_output, trans_output);
               logger.log_note("[Scoreboard] received monitor 1 " & integer'image(counter_out));
 
-              data_match := true;
-
+              -- Trick to get aligned data if a spike occurs during the last 150 > x > 100 samples
               if(timeout_ok= false) then
                 blocking_get(fifo_monitor_0, trans_input_drop);
                 blocking_get(fifo_monitor_0, trans_input_drop);
               end if;
 
+              data_match := true;
+
               -- Check that the values sent from the DUT are the same that we determined
               for i in 0 to (trans_output.data_out_trans'length)-1 loop
-                blocking_get(fifo_monitor_0, trans_input);
-                logger.log_note("[Scoreboard] monitor 0, value received : " & integer'image(to_integer(signed(trans_input.data_in_trans))));
+                blocking_get(fifo_monitor_0, trans_input_drop);
+                logger.log_note("[Scoreboard] monitor 0, value received : " & integer'image(to_integer(signed(trans_input_drop.data_in_trans))));
                 logger.log_note("[Scoreboard] monitor 1, value received : " & integer'image(to_integer(signed(trans_output.data_out_trans(i)))));
 
-                if(trans_input.data_in_trans /= trans_output.data_out_trans(i)) then
+                if(trans_input_drop.data_in_trans /= trans_output.data_out_trans(i)) then
                   data_match := false;
                 end if;
 
+                -- update nb of samples in the circular buffer
                 counter_fifo_0 := counter_fifo_0-1;
 
-                -- End the simulation
+                ------------------------
+                -- End the simulation --
+                ------------------------
                 if(timeout_ok= false) then
                   drop_objection;
                 end if;
+
               end loop;
 
               if (data_match = true) then
                 logger.log_note("[Scoreboard] The data received from the DUT match the data determined by the REF");
               else
                 logger.log_error("[Scoreboard] The Data received doesn't match ");
+              end if;
+
+
+              logger.log_note("[Scoreboard] waiting_to_receive_spike      : " & integer'image(waiting_to_receive_spike));
+              logger.log_note("[Scoreboard] sample_casted                 : " & integer'image(to_integer(sample_casted)));
+              logger.log_note("[Scoreboard] sample_casted_square          : " & integer'image(to_integer(sample_casted_square)));
+              logger.log_note("[Scoreboard] mean_ref                      : " & integer'image(to_integer(mean_ref)));
+              logger.log_note("[Scoreboard] intermediate_sum_ref          : " & integer'image(to_integer(intermediate_sum_ref)));
+              logger.log_note("[Scoreboard] intermediate_sum_reduced_ref  : " & integer'image(to_integer(intermediate_sum_reduced_ref)));
+              logger.log_note("[Scoreboard] deviation_ref                 : " & integer'image(to_integer(deviation_ref)));
+              logger.log_note("[Scoreboard] deviation_standard_ref        : " & integer'image(to_integer(deviation_standard_ref)));
+              logger.log_note("[Scoreboard] deviation_standard_ref*factor_square        : " & integer'image(to_integer( deviation_standard_ref*factor_square)));
+
+              if (true = new_spike_at_150_sample) then
+                new_spike_at_150_sample := false;
+                waiting_to_receive_spike := nb_samples_to_wait_after_spike_detection - 1;
+                logger.log_note("[Scoreboard] Spike detected at the 150 sample !!!!");
               end if;
 
               -- Data received from monitor 1
@@ -150,16 +178,6 @@ package body scoreboard_pkg is
                 logger.log_error("[Scoreboard] Spike was not found by the DUT");
               elsif (fifo_output.is_empty = false) then
                 logger.log_error("[Scoreboard] Received a spike from DUT, the REF didn't find any");
-
-                logger.log_note("[Scoreboard] waiting_to_receive_spike      : " & integer'image(waiting_to_receive_spike));
-                logger.log_note("[Scoreboard] sample_casted                 : " & integer'image(to_integer(sample_casted)));
-                logger.log_note("[Scoreboard] sample_casted_square          : " & integer'image(to_integer(sample_casted_square)));
-                logger.log_note("[Scoreboard] mean_ref                      : " & integer'image(to_integer(mean_ref)));
-                logger.log_note("[Scoreboard] intermediate_sum_ref          : " & integer'image(to_integer(intermediate_sum_ref)));
-                logger.log_note("[Scoreboard] intermediate_sum_reduced_ref  : " & integer'image(to_integer(intermediate_sum_reduced_ref)));
-                logger.log_note("[Scoreboard] deviation_ref                 : " & integer'image(to_integer(deviation_ref)));
-                logger.log_note("[Scoreboard] deviation_standard_ref        : " & integer'image(to_integer(deviation_standard_ref)));
-                logger.log_note("[Scoreboard] deviation_standard_ref*factor_square        : " & integer'image(to_integer( deviation_standard_ref*factor_square)));
 
                 -- Data received from monitor 1
                 counter_out := counter_out + 1;
@@ -220,27 +238,23 @@ package body scoreboard_pkg is
                 deviation_standard_ref := resize((intermediate_sum_reduced_ref/window_size),deviation_standard_ref'length) - mean_ref*mean_ref;
 
                 -- The last condition is to prevent generating a spike detection in the window of 150 samples
-                if (deviation_ref > (deviation_standard_ref*factor_square)) and (counter_samples_received_bounded >= window_size+1)  and (waiting_to_receive_spike = nb_samples_to_wait_after_spike_detection) then
+                if (deviation_ref > (deviation_standard_ref*factor_square)) and
+                   (counter_samples_received_bounded >= window_size+1)      and
+                   ((waiting_to_receive_spike = nb_samples_to_wait_after_spike_detection) or
+                   (waiting_to_receive_spike = 1)) then
+
                   spike_detected_ref := true;
                   logger.log_note("[Scoreboard] spike detected");
 
-                  waiting_to_receive_spike := waiting_to_receive_spike - 1;
+                  if (waiting_to_receive_spike = nb_samples_to_wait_after_spike_detection) then
+                    waiting_to_receive_spike := waiting_to_receive_spike - 1;
+                  else
+                    new_spike_at_150_sample := true;
+                  end if;
 
                 else
                   spike_detected_ref := false;
                 end if;
-              end if;
-
-              if (deviation_ref > (deviation_standard_ref*factor_square)) and (counter_samples_received_bounded >= window_size+1) then
-                logger.log_note("[Scoreboard] waiting_to_receive_spike      : " & integer'image(waiting_to_receive_spike));
-                logger.log_note("[Scoreboard] sample_casted                 : " & integer'image(to_integer(sample_casted)));
-                logger.log_note("[Scoreboard] sample_casted_square          : " & integer'image(to_integer(sample_casted_square)));
-                logger.log_note("[Scoreboard] mean_ref                      : " & integer'image(to_integer(mean_ref)));
-                logger.log_note("[Scoreboard] intermediate_sum_ref          : " & integer'image(to_integer(intermediate_sum_ref)));
-                logger.log_note("[Scoreboard] intermediate_sum_reduced_ref  : " & integer'image(to_integer(intermediate_sum_reduced_ref)));
-                logger.log_note("[Scoreboard] deviation_ref                 : " & integer'image(to_integer(deviation_ref)));
-                logger.log_note("[Scoreboard] deviation_standard_ref        : " & integer'image(to_integer(deviation_standard_ref)));
-                logger.log_note("[Scoreboard] deviation_standard_ref*factor_square        : " & integer'image(to_integer( deviation_standard_ref*factor_square)));
               end if;
 
               if (counter_samples_received_bounded < window_size+1) then
