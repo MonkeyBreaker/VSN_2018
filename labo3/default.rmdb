@@ -6,6 +6,7 @@
   <runnable name="directed" type="group">
     <parameters>
         <parameter name="ucdbfile">../(%INSTANCE%).ucdb</parameter>
+        <parameter name="testcase">0</parameter>
     </parameters>
     <members>
       <member>dirtest0</member>
@@ -31,18 +32,24 @@
       <command>file delete -force work</command>
       <command>vlib work</command>
       <command>vmap work work</command>
-      <command>ln -s (%RMDBDIR%)/tlmvm</command>
-      <command>vcom -2008 (%RMDBDIR%)/src/spike_detection_pkg.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src/log_pkg.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src/fifo.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src/spike_detection.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src_tb/transactions_pkg.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src_tb/transaction_fifo_pkg.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src_tb/agent0_pkg.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src_tb/agent1_pkg.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src_tb/scoreboard_pkg.vhd</command>
-      <command>vcom -2008 (%RMDBDIR%)/src_tb/spike_detection_tb.vhd</command>
-      <command>vsim -GERRNO=(%errno%) work.spike_detection_tb</command>
+      <command>ln -s (%RMDBDIR%)/tools/tlmvm</command>
+      <command>vcom -work common_lib -2008 (%RMDBDIR%)/../tools/common_lib/logger_pkg.vhd</command>
+      <command>vcom -work common_lib -2008 (%RMDBDIR%)/../tools/common_lib/comparator_pkg.vhd</command>
+      <command>vcom -work common_lib -2008 (%RMDBDIR%)/../tools/common_lib/complex_comparator_pkg.vhd</command>
+      <command>vcom -work common_lib -2008 (%RMDBDIR%)/../tools/common_lib/common_ctx.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src/spike_detection_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src/log_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src/fifo.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src/spike_detection.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/project_logger_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/project_ctx.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/transactions_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/transaction_fifo_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/agent0_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/agent1_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/scoreboard_pkg.vhd</command>
+      <command>vcom -work project_lib -2008 (%RMDBDIR%)/src_tb/spike_detection_tb.vhd</command>
+      <command>vsim -work project_lib -GERRNO=(%errno%) -GTESTCASE=(%testcase%) project_lib.spike_detection_tb</command>
       <command>run -all</command>
       <command>coverage attribute -name ERRNO -value (%INSTANCE%)</command>
       <command>coverage save (%ucdbfile%)</command>
@@ -76,6 +83,7 @@
   <runnable name="dirtest5" type="task">
     <parameters>
       <parameter name="errno">5</parameter>
+      <parameter name="testcase">2</parameter>
     </parameters>
   </runnable>
   <runnable name="dirtest6" type="task">
@@ -96,6 +104,7 @@
   <runnable name="dirtest9" type="task">
     <parameters>
       <parameter name="errno">9</parameter>
+      <parameter name="testcase">2</parameter>
     </parameters>
   </runnable>
   <runnable name="dirtest10" type="task">
