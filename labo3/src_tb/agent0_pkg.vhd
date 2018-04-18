@@ -24,9 +24,9 @@ use project_lib.spike_detection_pkg.all;
 
 package agent0_pkg is
 
-  procedure sequencer(variable fifo     : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
-                      constant testcase : in    integer;
-                      constant random_seed : in integer);
+  procedure sequencer(variable fifo        : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
+                      constant testcase    : in    integer;
+                      constant random_seed : in    integer);
 
   procedure driver(variable fifo      : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
                    signal clk         : in    std_logic;
@@ -49,12 +49,12 @@ end package;
 
 package body agent0_pkg is
 
-  constant SIZE_FRAME : integer := 1000;
-  constant MAX_POSITIVE_VALUE : integer :=  7000;
+  constant SIZE_FRAME         : integer := 1000;
+  constant MAX_POSITIVE_VALUE : integer := 7000;
   constant MAX_NEGATIVE_VALUE : integer := -MAX_POSITIVE_VALUE;
   constant BUFFERIZE          : integer := 128;
   constant WINDOW_SIZE        : integer := 150;
-  constant INPUT_FILE_NAME : string                := "../src_tb/input_values.txt";
+  constant INPUT_FILE_NAME    : string  := "../src_tb/input_values.txt";
 
   impure function get_signed_vector(nb : integer; length : integer) return std_logic_vector is
   begin
@@ -66,24 +66,24 @@ package body agent0_pkg is
     return to_integer(signed(val));
   end get_integer_signed_value;
 
-  procedure generate_data(fifo : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
-                          nb_samples : integer; nb_spikes : integer; factor : integer; random_seed : integer) is
-    variable var_rand : RandomPType;
-    variable transaction : input_transaction_t;
-    variable data : integer;
-    variable mean : integer;
-    variable deviantion : integer;
-    variable is_spike : boolean;
-    variable last_spike : integer;
+  procedure generate_data(fifo       : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
+                          nb_samples :       integer; nb_spikes : integer; factor : integer; random_seed : integer) is
+    variable var_rand     : RandomPType;
+    variable transaction  : input_transaction_t;
+    variable data         : integer;
+    variable mean         : integer;
+    variable deviantion   : integer;
+    variable is_spike     : boolean;
+    variable last_spike   : integer;
     variable spike_random : integer;
-    variable nb_spike : integer;
+    variable nb_spike     : integer;
   begin
 
     --------------------------
     -- Initialize variables --
     --------------------------
     last_spike := 0;
-    nb_spike := 0;
+    nb_spike   := 0;
 
     --------------------------------------------------
     -- Check if it's possible to cast enough spikes --
@@ -118,35 +118,35 @@ package body agent0_pkg is
         data := deviantion*(factor);
 
         last_spike := i;
-        nb_spike := nb_spike + 1;
+        nb_spike   := nb_spike + 1;
         logger.log_note("[Sequencer] : Generate spike");
-      elsif is_spike = true then     -- Do not generate a spike by chance
+      elsif is_spike = true then        -- Do not generate a spike by chance
         data := data/10;
       end if;
 
       if (i < BUFFERIZE) then
-        mean := mean + data/BUFFERIZE;
+        mean       := mean + data/BUFFERIZE;
         deviantion := data**2 + deviantion;
       else
-        mean := mean + (data-mean)/BUFFERIZE;
+        mean       := mean + (data-mean)/BUFFERIZE;
         deviantion := data**2 + deviantion - deviantion/WINDOW_SIZE;
       end if;
 
       is_spike := ((data-mean)**2) > deviantion*factor and i >= BUFFERIZE;
 
-      transaction.data_in_trans :=  get_signed_vector(data, transaction.data_in_trans'length);
+      transaction.data_in_trans := get_signed_vector(data, transaction.data_in_trans'length);
       blocking_put(fifo, transaction);
 
     end loop;
 
   end generate_data;
 
-  procedure sequencer(variable fifo     : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
-                      constant testcase : in    integer;
-                      constant random_seed : in integer) is
-    variable transaction : input_transaction_t;
-    variable counter     : integer;
-    variable value_v     : integer;
+  procedure sequencer(variable fifo        : inout work.input_transaction_fifo1_pkg.tlm_fifo_type;
+                      constant testcase    : in    integer;
+                      constant random_seed : in    integer) is
+    variable transaction  : input_transaction_t;
+    variable counter      : integer;
+    variable value_v      : integer;
     variable input_line_v : line;
     file input_file_f     : text;
   begin
@@ -154,10 +154,10 @@ package body agent0_pkg is
     counter := 0;
 
     case testcase is
-      when 0 => -- 2 spikes
+      when 0 =>                         -- 4 spikes
         for i in 0 to SIZE_FRAME loop
           -- TODO : Prepare a transaction
-          if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = SIZE_FRAME-101) then -- (i = 3*SIZE_FRAME/4) or
+          if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = SIZE_FRAME-101) then  -- (i = 3*SIZE_FRAME/4) or
             transaction.data_in_trans := get_signed_vector(10000, transaction.data_in_trans'length);
           else
             transaction.data_in_trans := get_signed_vector(0, transaction.data_in_trans'length);
@@ -168,7 +168,7 @@ package body agent0_pkg is
           counter := counter + 1;
         end loop;
 
-      when 1 => -- random
+      when 1 =>                         -- random
         generate_data(fifo, 1500, 4, 15, random_seed);
 
       when 2 =>
@@ -210,9 +210,9 @@ package body agent0_pkg is
                    signal port_input  : out   port0_input_t;
                    signal port_output : in    port0_output_t
                    ) is
-    variable transaction : input_transaction_t;
-    variable counter     : integer;
-    variable timeout_ok     : boolean;
+    variable transaction         : input_transaction_t;
+    variable counter             : integer;
+    variable timeout_ok          : boolean;
     constant time_before_timeout : time := 5 ns;
   begin
 
@@ -227,7 +227,7 @@ package body agent0_pkg is
 
       if (timeout_ok = true) then
         logger.log_note("[Driver] received transaction number " & integer'image(counter)
-        & " Value received " & integer'image(get_integer_signed_value(transaction.data_in_trans)));
+                        & " Value received " & integer'image(get_integer_signed_value(transaction.data_in_trans)));
       else
         stop_monitor_0 := true;
         logger.log_note("[Driver] Timeout ");
@@ -238,7 +238,7 @@ package body agent0_pkg is
       wait until falling_edge(clk) and port_output.ready = '1';
 
       logger.log_note("[Driver] Load Data  & enable data");
-      port_input.sample <= transaction.data_in_trans;
+      port_input.sample       <= transaction.data_in_trans;
       port_input.sample_valid <= '1';
 
       wait until falling_edge(clk);
