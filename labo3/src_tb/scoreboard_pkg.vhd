@@ -77,7 +77,7 @@ package body scoreboard_pkg is
     deviation_ref                    := (others => '0');
     deviation_standard_ref           := (others => '0');
     factor_square                    := 15;  -- seriously ... already squared !? Arghhhhh, and why do I need to check the DUT for know this value :@
-    window_size                      := 128;  -- Not 128, because the first sample is dropped
+    window_size                      := 128; 
     spike_detected_ref               := false;
     timeout_ok                       := false;
     new_spike_at_150_sample          := false;
@@ -221,8 +221,6 @@ package body scoreboard_pkg is
         sample_casted        := signed(trans_input.data_in_trans);
         sample_casted_square := resize(sample_casted*sample_casted, sample_casted_square'length);
 
-        --if (counter_samples_received_bounded >= 1) then -- WHY THE F*CK the first value stored in the FIFO is not read in the DUT !? :@
-
         --------------------------------------------------------------------------------------
         -- Until we have received enough data to fill the FIFO (128), we don't remove X/128 --
         --------------------------------------------------------------------------------------
@@ -255,7 +253,6 @@ package body scoreboard_pkg is
         else
           spike_detected_ref := false;
         end if;
-        --end if;
 
         if (counter_samples_received_bounded < window_size+1) then
           counter_samples_received_bounded := counter_samples_received_bounded + 1;
