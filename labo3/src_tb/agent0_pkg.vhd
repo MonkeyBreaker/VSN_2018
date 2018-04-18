@@ -50,7 +50,7 @@ end package;
 package body agent0_pkg is
 
   constant SIZE_FRAME         : integer := 1000;
-  constant MAX_POSITIVE_VALUE : integer := 7000;
+  constant MAX_POSITIVE_VALUE : integer := 10000;
   constant MAX_NEGATIVE_VALUE : integer := -MAX_POSITIVE_VALUE;
   constant BUFFERIZE          : integer := 128;
   constant WINDOW_SIZE        : integer := 150;
@@ -154,7 +154,7 @@ package body agent0_pkg is
     counter := 0;
 
     case testcase is
-      when 0 =>                         -- 4 spikes
+      when 0 =>                         -- 3 spikes
         for i in 0 to SIZE_FRAME loop
           -- TODO : Prepare a transaction
           if (i = SIZE_FRAME/4) or (i = (SIZE_FRAME/4) + 120) or (i = (SIZE_FRAME/4) + 155) or (i = SIZE_FRAME-101) then  -- (i = 3*SIZE_FRAME/4) or
@@ -234,6 +234,10 @@ package body agent0_pkg is
       end if;
 
       logger.log_note("[Driver] port_output.ready " & to_string(port_output.ready));
+
+      if(port_output.ready = '0') then
+        logger.log_error("[Driver] port_output.ready not activated");
+      end if;
 
       wait until falling_edge(clk) and port_output.ready = '1';
 

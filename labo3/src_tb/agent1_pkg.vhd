@@ -48,9 +48,14 @@ package body agent1_pkg is
           transaction.data_out_trans(counter) := port_output.samples_spikes;
           counter                             := counter + 1;
 
-          if (port_output.spike_detected = '1' or counter = 150) then  -- last sample received
+          if (port_output.spike_detected = '1') then  -- last sample received
             logger.log_note("[Monitor 1] Sending to scoreboard " & integer'image(counter));
             blocking_put(fifo, transaction);
+            counter := 0;
+          end if;
+
+          if(counter = 150) then
+            logger.log_error("[Monitor 1] Spike signal not detected by the DUT ");
             counter := 0;
           end if;
 
