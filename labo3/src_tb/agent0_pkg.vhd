@@ -50,7 +50,7 @@ end package;
 package body agent0_pkg is
 
   constant SIZE_FRAME : integer := 1000;
-  constant MAX_POSITIVE_VALUE : integer :=  8000;
+  constant MAX_POSITIVE_VALUE : integer :=  7000;
   constant MAX_NEGATIVE_VALUE : integer := -MAX_POSITIVE_VALUE;
   constant BUFFERIZE          : integer := 128;
   constant WINDOW_SIZE        : integer := 150;

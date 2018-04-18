@@ -221,21 +221,32 @@ package body scoreboard_pkg is
               sample_casted := signed(trans_input.data_in_trans);
               sample_casted_square := resize(sample_casted*sample_casted, sample_casted_square'length);
 
-              if (counter_samples_received_bounded >= 1) then -- WHY THE F*CK the first value stored in the FIFO is not read in the DUT !? :@
+              --if (counter_samples_received_bounded >= 1) then -- WHY THE F*CK the first value stored in the FIFO is not read in the DUT !? :@
 
                 --------------------------------------------------------------------------------------
                 -- Until we have received enough data to fill the FIFO (128), we don't remove X/128 --
                 --------------------------------------------------------------------------------------
+                deviation_ref := (sample_casted-mean_ref)*(sample_casted-mean_ref);
+                deviation_standard_ref := resize(shift_right((intermediate_sum_reduced_ref),7),deviation_standard_ref'length) - mean_ref*mean_ref;
+                
                 if(counter_samples_received_bounded >= window_size+1) then
-                  mean_ref := mean_ref + (sample_casted - mean_ref)/window_size;
-                  intermediate_sum_reduced_ref := (resize(sample_casted_square, intermediate_sum_reduced_ref'length) + intermediate_sum_reduced_ref) - (intermediate_sum_reduced_ref)/window_size;
+                  mean_ref := mean_ref + shift_right((sample_casted),7) -  shift_right((mean_ref), 7);
+                  intermediate_sum_reduced_ref := (resize(sample_casted_square, intermediate_sum_reduced_ref'length) + intermediate_sum_reduced_ref) - shift_right((intermediate_sum_reduced_ref),7);
                 else
-                  mean_ref := mean_ref + (sample_casted)/window_size;
+                  mean_ref := mean_ref + shift_right((sample_casted),7);
                   intermediate_sum_reduced_ref := resize(sample_casted_square, intermediate_sum_reduced_ref'length) + (intermediate_sum_reduced_ref);
                 end if;
 
-                deviation_ref := (sample_casted-mean_ref)*(sample_casted-mean_ref);
-                deviation_standard_ref := resize((intermediate_sum_reduced_ref/window_size),deviation_standard_ref'length) - mean_ref*mean_ref;
+
+                logger.log_note("[Scoreboard] waiting_to_receive_spike      : " & integer'image(waiting_to_receive_spike));
+                logger.log_note("[Scoreboard] sample_casted                 : " & integer'image(to_integer(sample_casted)));
+                logger.log_note("[Scoreboard] sample_casted_square          : " & integer'image(to_integer(sample_casted_square)));
+                logger.log_note("[Scoreboard] mean_ref                      : " & integer'image(to_integer(mean_ref)));
+                logger.log_note("[Scoreboard] intermediate_sum_ref          : " & integer'image(to_integer(intermediate_sum_ref)));
+                logger.log_note("[Scoreboard] intermediate_sum_reduced_ref  : " & integer'image(to_integer(intermediate_sum_reduced_ref)));
+                logger.log_note("[Scoreboard] deviation_ref                 : " & integer'image(to_integer(deviation_ref)));
+                logger.log_note("[Scoreboard] deviation_standard_ref        : " & integer'image(to_integer(deviation_standard_ref)));
+                logger.log_note("[Scoreboard] deviation_standard_ref*factor_square        : " & integer'image(to_integer( deviation_standard_ref*factor_square)));
 
                 -- The last condition is to prevent generating a spike detection in the window of 150 samples
                 if (deviation_ref > (deviation_standard_ref*factor_square)) and
@@ -255,7 +266,7 @@ package body scoreboard_pkg is
                 else
                   spike_detected_ref := false;
                 end if;
-              end if;
+              --end if;
 
               if (counter_samples_received_bounded < window_size+1) then
                 counter_samples_received_bounded := counter_samples_received_bounded + 1;
