@@ -50,6 +50,38 @@ module math_computer_tb#(integer testcase = 0,
                output_valid = output_itf.valid;
     endclocking
 
+    task generate_random_stimuli();
+      // Assign a random value to a and b
+      assert(randomize(cb.a));
+      assert(randomize(cb.b));
+
+      // Enable the data inputs
+      cb.input_valid <= 1;
+      ##1;
+      // Disable the data inputs
+      cb.input_valid <= 0;
+      ##1;
+    endtask
+
+    task wait_input_ready();
+      while(cb.input_ready == 0) ##1;
+    endtask
+
+    task wait_end_computation();
+      while(cb.output_valid == 0) ##1;
+    endtask
+
+    task reset_DUT();
+      ##1;
+      // Le reset est appliqué 5 fois d'affilée
+      // But why :'( :'( :'('
+      repeat (5) begin
+          cb.rst <= 1;
+          ##1 cb.rst <= 0;
+          ##10;
+      end
+    endtask
+
     task test_case0();
         $display("Let's start first test case");
         cb.a <= 0;
@@ -58,13 +90,7 @@ module math_computer_tb#(integer testcase = 0,
         cb.input_valid  <= 0;
         cb.output_ready <= 0;
 
-        ##1;
-        // Le reset est appliqué 5 fois d'affilée
-        repeat (5) begin
-            cb.rst <= 1;
-            ##1 cb.rst <= 0;
-            ##10;
-        end
+        reset_DUT();
 
         repeat (10) begin
             cb.input_valid <= 1;
@@ -75,13 +101,48 @@ module math_computer_tb#(integer testcase = 0,
         end
     endtask
 
+    task test_case1(int nb_iter);
+        automatic int result = 0;
+        automatic int iters = nb_iter;
+        $display("Let's start second test case");
+        cb.a <= 0;
+        cb.b <= 0;
+        cb.c <= 0;
+        cb.input_valid  <= 0;
+        cb.output_ready <= 1;
+
+        reset_DUT();
+
+        while(0 != iters) begin
+          wait_input_ready();
+          generate_random_stimuli();
+          result = (cb.a+cb.b);
+
+          $display("%d + %d = %d", cb.a, cb.b, result);
+
+          $display("Result before = %d",cb.result);
+          wait_end_computation();
+          $display("Result after = %d",cb.result);
+
+          if (cb.result == result)
+            $display("The result is correct");
+          else
+            $display("The result is incorrect");
+
+          iters--;
+        end
+
+    endtask
+
 
 
     // Programme lancé au démarrage de la simulation
     program TestSuite;
         initial begin
-            if (testcase == 0)
+            if (testcase == 0) begin
                 test_case0();
+                test_case1(10);
+            end
             else
                 $display("Ach, test case not yet implemented");
             $display("done!");
