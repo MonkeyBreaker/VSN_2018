@@ -23,6 +23,9 @@ Ver    Date         Who    Description
 module math_computer_tb#(integer testcase = 0,
                          integer errno = 0);
 
+    // enum for functionalities
+    enum integer {DISABLE = 0, ENABLE = 1} functionalitie_status;
+
     // Déclaration et instanciation des deux interfaces
     math_computer_input_itf input_itf();
     math_computer_output_itf output_itf();
@@ -50,10 +53,16 @@ module math_computer_tb#(integer testcase = 0,
                output_valid = output_itf.valid;
     endclocking
 
-    task generate_random_stimuli();
+    task generate_random_stimuli(int enable_a,
+                                 int enable_b,
+                                 int enable_c);
       // Assign a random value to a and b
-      assert(randomize(cb.a));
-      assert(randomize(cb.b));
+      if(ENABLE == enable_a)
+        assert(randomize(cb.a));
+      if(ENABLE == enable_b)
+        assert(randomize(cb.b));
+      if(ENABLE == enable_c)
+        assert(randomize(cb.c));
 
       // Enable the data inputs
       cb.input_valid <= 1;
@@ -115,7 +124,7 @@ module math_computer_tb#(integer testcase = 0,
 
         while(0 != iters) begin
           wait_input_ready();
-          generate_random_stimuli();
+          generate_random_stimuli(ENABLE,ENABLE,DISABLE);
           result = (cb.a+cb.b);
 
           $display("%d + %d = %d", cb.a, cb.b, result);
