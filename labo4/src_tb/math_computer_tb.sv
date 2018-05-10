@@ -53,15 +53,54 @@ module math_computer_tb#(integer testcase = 0,
                output_valid = output_itf.valid;
     endclocking
 
+    class dut_inputs;
+      rand logic[`DATASIZE-1:0] di_a;
+      rand logic[`DATASIZE-1:0] di_b;
+      rand logic[`DATASIZE-1:0] di_c;
+    endclass
+
+    class dut_inputs_cons extends dut_inputs;
+      constraint a_cons {
+        di_a dist {
+          [0:10] := 1,
+          [11:2**(`DATASIZE)-1]  := 1
+        };
+      }
+
+      constraint c_cons {
+        (di_a > di_b) -> di_c inside {[0:1000]};
+      }
+
+      constraint b_cons {
+        (((di_a%2) == 0) && ((di_b%2) == 0)) -> di_b inside {di_b+1};
+      }
+
+    endclass : dut_inputs_cons
+
+    covergroup cov_group_in @(posedge clk);
+      cov_input_ready : coverpoint cb.input_ready;
+      cov_result      : coverpoint cb.result;
+      cov_output_valid: coverpoint cb.output_valid;
+    endgroup
+
+    covergroup cov_group_out @(posedge clk);
+      cov_a           : coverpoint cb.a {bins little = {[0:100]}; bins mid = {[1000:2000]}; bins big = {[10000:30000]}; bins max = {2**(`DATASIZE)-1};}
+      cov_b           : coverpoint cb.b {bins little = {[0:100]}; bins mid = {[1000:2000]}; bins big = {[10000:30000]}; bins max = {2**(`DATASIZE)-1};}
+      cov_c           : coverpoint cb.c {bins little = {[0:100]}; bins mid = {[1000:2000]}; bins big = {[10000:30000]}; bins max = {2**(`DATASIZE)-1};}
+      cov_input_valid : coverpoint cb.input_valid;
+      cov_output_ready: coverpoint cb.output_ready;
+      cov_cross: cross cov_a,cov_b;
+    endgroup
+
     task generate_random_stimuli(int enable_a,
                                  int enable_b,
                                  int enable_c);
       // Assign a random value to a and b
-      if(ENABLE == enable_a)
+      if(DISABLE != enable_a)
         assert(randomize(cb.a));
-      if(ENABLE == enable_b)
+      if(DISABLE != enable_b)
         assert(randomize(cb.b));
-      if(ENABLE == enable_c)
+      if(DISABLE != enable_c)
         assert(randomize(cb.c));
 
       // Enable the data inputs
@@ -111,8 +150,14 @@ module math_computer_tb#(integer testcase = 0,
     endtask
 
     task test_case1(int nb_iter);
-        automatic int result = 0;
+        automatic logic[`DATASIZE-1:0] result = 0;
         automatic int iters = nb_iter;
+        automatic dut_inputs_cons duti = new;
+
+        // instanciation du groupe de couverture
+        automatic cov_group_in  cg_in = new;
+        automatic cov_group_out cg_out = new;
+
         $display("Let's start second test case");
         cb.a <= 0;
         cb.b <= 0;
@@ -122,12 +167,25 @@ module math_computer_tb#(integer testcase = 0,
 
         reset_DUT();
 
-        while(0 != iters) begin
+        while(1) begin
           wait_input_ready();
-          generate_random_stimuli(ENABLE,ENABLE,DISABLE);
+          // When using generate_random_stimuli, the input_valid is done inside the function !
+          // generate_random_stimuli(ENABLE,ENABLE,DISABLE);
+          if (!duti.randomize()) $stop;
+          cb.a <= duti.di_a;
+          cb.b <= duti.di_b;
+
+          // Enable the data inputs
+          cb.input_valid <= 1;
+          ##1;
+          // Disable the data inputs
+          cb.input_valid <= 0;
+          ##1;
+
           result = (cb.a+cb.b);
 
           $display("%d + %d = %d", cb.a, cb.b, result);
+          $display("di_c %d", duti.di_c);
 
           $display("Result before = %d",cb.result);
           wait_end_computation();
@@ -138,22 +196,39 @@ module math_computer_tb#(integer testcase = 0,
           else
             $display("The result is incorrect");
 
+          $display("Current global coverage : %d", $get_coverage());
+          $display("Current input coverage  : %d", cg_in.get_inst_coverage());
+          $display("Current output coverage : %d", cg_out.get_inst_coverage());
+
           iters--;
         end
-
     endtask
 
+    task wait_for_coverage();
+      do
+        @(posedge clk);
+      while (cov_group_in::get_coverage() < 100);
+    endtask
 
 
     // Programme lancé au démarrage de la simulation
     program TestSuite;
         initial begin
-            if (testcase == 0) begin
-                test_case0();
-                test_case1(10);
-            end
-            else
+
+
+            case(testcase)
+              0       : test_case0();
+              1       :   begin
+                          fork
+                            test_case1(10);
+                            wait_for_coverage();
+                          join_any
+                          disable fork;
+                          $display("Durée de la simulation: %0d ns", $time());
+                        end
+              default :
                 $display("Ach, test case not yet implemented");
+            endcase;
             $display("done!");
             $stop;
         end
