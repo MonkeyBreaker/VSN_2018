@@ -32,13 +32,22 @@ module avalon_assertions#(
     endclocking
 
     generate
-
+       // simple wait request
         if (AVALONMODE == 0) begin : assert_waitrequest
 
+            // When wait request = 1, control signals must be equal to old control signals
             assert_waitreq1: assert property (!(read & write));
-
+            assert_waitreq2: assert property    ((waitrequest and $stable(waitrequest)) |->
+                                                ($stable(read)  and
+                                                 $stable(write) and
+                                                 $stable(readdatavalid) and
+                                                 $stable(byteenable) and
+                                                 $stable(address))
+                                                 );
+            assert_waitreq3: assert property     ($fell(waitrequest) and read |-> readdatavalid);
         end
 
+        // Fixed wait
         if (AVALONMODE == 1) begin : assert_fixed
 
             assert1: assert property (!(read & write));
@@ -58,8 +67,12 @@ module avalon_assertions#(
         end
 
         if (AVALONMODE == 4) begin : assert_burst
+            int total_burst = 0;
+            int total_readdata = 0;
 
             assert1: assert property (!(read & write));
+            assert2: assert property ($rise(beginbursttransfer) |-> $rise(waitrequest));
+            assert3: assert property ($rise(beginbursttransfer) |-> $rise(waitrequest));
 
         end
 
