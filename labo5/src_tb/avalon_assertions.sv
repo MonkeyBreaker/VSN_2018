@@ -70,9 +70,8 @@ module avalon_assertions#(
             int total_burst = 0;
             int total_readdata = 0;
 
-            assert1: assert property (!(read & write));
-            assert2: assert property ($rise(beginbursttransfer) |-> $rise(waitrequest));
-            assert3: assert property ($rise(beginbursttransfer) |-> $rise(waitrequest));
+            assert2: assert property (($rose(beginbursttransfer) == $rose(waitrequest)) throughout !write);
+            assert3: assert property ($rose(beginbursttransfer) and !write |-> read);
 
         end
 
