@@ -14,7 +14,7 @@ interface usb_itf;
     logic clk_i;
     logic[7:0] data_o;
     logic valid_o;
-	logic frame_o;
+	  logic frame_o;
 endinterface : usb_itf
 
 `endif // INTERFACES_SV
