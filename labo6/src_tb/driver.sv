@@ -8,24 +8,51 @@ class Driver;
 
     ble_fifo_t sequencer_to_driver_fifo;
 
+    // This variable is used to save the packets received from the sequencer
+    BlePacket ble_packets_channels [0:39];
+
+    int bits_to_send[0:39];
+
+    int nb_packets_received_from_sequencer;
+
     virtual ble_itf vif;
 
-    task drive_packet(BlePacket packet);
-//        packet.isAdv = 1;
-//        void'(packet.randomize());
-        vif.valid_i <= 1;
-        for(int i = packet.sizeToSend - 1;i>=0; i--) begin
-            vif.serial_i <= packet.dataToSend[i];
-            vif.channel_i <= 0;
-            vif.rssi_i <= 4;
-            @(posedge vif.clk_i);
-        end
-        vif.serial_i <= 0;
-        vif.valid_i <= 0;
-        vif.channel_i <= 0;
-        vif.rssi_i <= 0;
-        for(int i=0; i<9; i++)
-            @(posedge vif.clk_i);
+    `define packet_channel_invalid (41)
+
+    task send_packet_bit(BlePacket packet);
+      vif.valid_i <= 1;
+
+      // Decraement before sending,
+      bits_to_send[packet.channel] = bits_to_send[packet.channel] - 1;
+
+      vif.serial_i <= packet.dataToSend[bits_to_send[packet.channel]];
+      // The driver need to send values from 0 -> 78 (only even values)
+      vif.channel_i <= packet.channel*2;
+      // Generate different values of rssi just for check after the mean
+      // value returned by the DUT
+      vif.rssi_i <= packet.rssi;
+
+
+      @(posedge vif.clk_i);
+
+      // Check that there are remaining bit to send
+      if(0 == bits_to_send[packet.channel]) begin
+        // All the bits of the packet were send
+        $display("[Driver] Complete packet send, channel %d", packet.channel);
+        packet.channel = `packet_channel_invalid;
+        nb_packets_received_from_sequencer = nb_packets_received_from_sequencer-1;
+      end
+
+    endtask
+
+    task clear_and_wait();
+      // Wait clk between after frame sent to dut
+      // All the inputs signals are reset
+      vif.serial_i <= 1;
+      vif.valid_i <= 0;
+      vif.channel_i <= 0;
+      vif.rssi_i <= 0;
+      @(posedge vif.clk_i);
     endtask
 
     task run;
@@ -43,12 +70,49 @@ class Driver;
         @(posedge vif.clk_i);
         @(posedge vif.clk_i);
 
-        // Cette fonction mérite d'être mieux écrite
+        nb_packets_received_from_sequencer = 0;
 
-        for(int i=0;i<10;i++) begin
-            sequencer_to_driver_fifo.get(packet);
-            drive_packet(packet);
-            $display("I got a packet!!!!");
+        for(int i=0; i < $size(ble_packets_channels); i++) begin
+          ble_packets_channels[i] = new;
+          ble_packets_channels[i].channel = `packet_channel_invalid;
+        end
+
+        while(1) begin
+
+            // Try to get a packet
+            // If not packet could be read, the function returns 0
+            if(0 != sequencer_to_driver_fifo.try_get(packet)) begin
+              // If the channel has already a packet, drop the new packet
+              if(`packet_channel_invalid == ble_packets_channels[packet.channel].channel) begin
+                nb_packets_received_from_sequencer += 1;
+
+                // Saves the packet at the corresponding channel to send
+                ble_packets_channels[packet.channel] = packet;
+                bits_to_send[packet.channel] = packet.sizeToSend - 1;
+                $display("[Driver] I got a packet, channel : %d, size : %d", packet.channel, bits_to_send[packet.channel]);
+              end
+              else begin
+                $display("[Driver] Channel already used");
+              end
+            end
+
+            if(0 < nb_packets_received_from_sequencer) begin
+              // Check the 40 channels and send a bit if the channel is valid
+              for(int i=0; i < $size(ble_packets_channels); i++) begin
+                // send a bit if the channel is a valid one
+                if(`packet_channel_invalid != ble_packets_channels[i].channel) begin
+                  if(i == ble_packets_channels[i].channel) begin
+                    $display("[Driver] Send bit");
+                    send_packet_bit(ble_packets_channels[i]);
+                    clear_and_wait();
+                  end
+                  else begin
+                    $display("[ERROR] [Driver] Bad channel configuration");
+                    ble_packets_channels[i].channel = `packet_channel_invalid;
+                  end
+                end
+              end
+            end
         end
 
         for(int i=0;i<99;i++)

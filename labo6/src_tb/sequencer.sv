@@ -37,23 +37,25 @@ class Sequencer;
          // We generate x pairs of advertizing + data packets which are sent in the right order to the DUT using driver + fifo.
          // With that example, we should not have problems of data packets without prior advertising,... => we should get 20 valid packets on the USB side.
 
+         //----------------------------------------------------
+         //Send an advertizing packet
+         //----------------------------------------------------
+         packet_advertising = new;
+         packet_advertising.isAdv = 1; // Set as "advertizing" packet
+         void'(packet_advertising.randomize());
+
+         //Send to driver and scoreboard
+         sequencer_to_driver_fifo.put(packet_advertising);
+         sequencer_to_scoreboard_fifo.put(packet_advertising);
+
+         $display(packet_advertising.psprint());
+         $display("[Sequencer] [AD N:%d] Sent an advertising packet on channel %d, for the device 0x%h with dataToSend: 0x%h",
+         packet_counter, packet_advertising.channel, packet_advertising.advertasing_address, packet_advertising.dataToSend);
+
+         //Count how many packet we sent
+         packet_counter = packet_counter + 1;
+
          for(int i=0;i<10;i++) begin
-             //----------------------------------------------------
-             //Send an advertizing packet
-             //----------------------------------------------------
-             packet_advertising = new;
-             packet_advertising.isAdv = 1; // Set as "advertizing" packet
-             void'(packet_advertising.randomize());
-
-             //Send to driver and scoreboard
-             sequencer_to_driver_fifo.put(packet_advertising);
-             sequencer_to_scoreboard_fifo.put(packet_advertising);
-
-           $display("[Sequencer] [AD N:%d] Sent an advertising packet on channel %d, for the device 0x%h with dataToSend: 0x%h",
-                  packet_counter, packet_advertising.channel, packet_advertising.advertasing_address, packet_advertising.dataToSend);
-
-             //Count how many packet we sent
-             packet_counter = packet_counter + 1;
 
              //----------------------------------------------------
              //Send a data packet with the corresponding advertising address
@@ -66,6 +68,8 @@ class Sequencer;
              //Send to driver and scoreboard
              sequencer_to_driver_fifo.put(packet_data);
              sequencer_to_scoreboard_fifo.put(packet_data);
+
+             $display(packet_data.psprint());
 
              $display("[Sequencer] [Packet N:%d] sent a data packet on channel %d, for the device 0x%h with a dataToSend: 0x%h",
                       packet_counter, packet_data.channel, packet_data.data_device_addr, packet_data.dataToSend);

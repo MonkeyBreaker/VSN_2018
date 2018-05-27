@@ -48,30 +48,24 @@ class BlePacket;
 
 
   function string psprint();
-    $sformat(psprint, "BlePacket, isAdv : %b, addr= %h, time = %t\nsizeSend = %d, dataSend = %h\n",
-                                                       this.isAdv, this.addr, $time,sizeToSend,dataToSend);
+  $sformat(psprint, "BlePacket, isAdv : %b, addr= %h, time = %t\nsizeSend = %d, dataSend = %h\nrssi = %d",
+                                            this.isAdv, this.addr, $time,sizeToSend,dataToSend, this.rssi);
   endfunction : psprint
 
   function void post_randomize();
 
-	logic[7:0] preamble=8'h55;
+	  logic[7:0] preamble=8'h55;
 
 	/* Initialisation des données à envoyer */
   	dataToSend = 0;
   	sizeToSend=size*8+16+32+8;
 
-	/* Cas de l'envoi d'un paquet d'advertizing */
-	if (isAdv == 1) begin
-		addr = 32'h12345678;
-        // DeviceAddr = 0. Pour l'exemple
-        for(int i=0; i<32;i++)
-            rawData[size*8-1-i] = 0;
-	end
 
-	/* Cas de l'envoi d'un paquet de données */
+  	if (isAdv == 1) begin
+  		addr = 32'h12345678;
+  	end
     else if (isAdv == 0) begin
-        // Peut-être que l'adresse devra être définie d'une certaine manière
-		addr = 0;
+  	    addr = data_device_addr;
     end
 
 
