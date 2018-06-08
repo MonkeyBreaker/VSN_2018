@@ -1,6 +1,7 @@
 `ifndef DRIVER_SV
 `define DRIVER_SV
 
+`include "state.sv"
 
 class Driver;
 
@@ -13,7 +14,9 @@ class Driver;
 
     int bits_to_send[0:39];
 
-    int nb_packets_received_from_sequencer;
+    int nb_packets_to_process;
+    int nb_packets_received_from_sequencer = 0;
+    int nb_packets_sent_to_dut = 0;
 
     virtual ble_itf vif;
 
@@ -38,9 +41,10 @@ class Driver;
       // Check that there are remaining bit to send
       if(0 == bits_to_send[packet.channel]) begin
         // All the bits of the packet were send
-        $display("[Driver] Complete packet send, channel %d", packet.channel);
+      $display("[INFO] [DRIVER] Complete packet send, on channel %d", packet.channel);
+        nb_packets_sent_to_dut++;
         packet.channel = `packet_channel_invalid;
-        nb_packets_received_from_sequencer = nb_packets_received_from_sequencer-1;
+        nb_packets_to_process = nb_packets_to_process-1;
       end
 
     endtask
@@ -58,7 +62,7 @@ class Driver;
     task run;
         automatic BlePacket packet;
         packet = new;
-        $display("Driver : start");
+        $display("[INFO] [DRIVER] : start");
 
         vif.serial_i <= 0;
         vif.valid_i <= 0;
@@ -70,7 +74,7 @@ class Driver;
         @(posedge vif.clk_i);
         @(posedge vif.clk_i);
 
-        nb_packets_received_from_sequencer = 0;
+        nb_packets_to_process = 0;
 
         for(int i=0; i < $size(ble_packets_channels); i++) begin
           ble_packets_channels[i] = new;
@@ -83,42 +87,52 @@ class Driver;
             // If not packet could be read, the function returns 0
             if(0 != sequencer_to_driver_fifo.try_get(packet)) begin
               // If the channel has already a packet, drop the new packet
+              nb_packets_received_from_sequencer++;
+
               if(`packet_channel_invalid == ble_packets_channels[packet.channel].channel) begin
-                nb_packets_received_from_sequencer += 1;
+                nb_packets_to_process += 1;
 
                 // Saves the packet at the corresponding channel to send
                 ble_packets_channels[packet.channel] = packet;
                 bits_to_send[packet.channel] = packet.sizeToSend - 1;
-                $display("[Driver] I got a packet, channel : %d, size : %d", packet.channel, bits_to_send[packet.channel]);
+                $display("[INFO] [DRIVER] I got a packet, channel : %d, size bytes : %d", packet.channel, bits_to_send[packet.channel]/8);
               end
               else begin
-                $display("[Driver] Channel already used");
+                $display("[INFO] [DRIVER] Channel already used");
               end
             end
 
-            if(0 < nb_packets_received_from_sequencer) begin
+            if(0 < nb_packets_to_process) begin
               // Check the 40 channels and send a bit if the channel is valid
               for(int i=0; i < $size(ble_packets_channels); i++) begin
                 // send a bit if the channel is a valid one
                 if(`packet_channel_invalid != ble_packets_channels[i].channel) begin
                   if(i == ble_packets_channels[i].channel) begin
-                    $display("[Driver] Send bit");
+                  //$display("[Driver] Send bit");
                     send_packet_bit(ble_packets_channels[i]);
                     clear_and_wait();
                   end
                   else begin
-                    $display("[ERROR] [Driver] Bad channel configuration");
+                    $display("[ERROR] [DRIVER] The channel is currently busy");
                     ble_packets_channels[i].channel = `packet_channel_invalid;
                   end
                 end
               end
             end
+            else begin
+              // If all the packets sent from the sequencer are sent, finish the driver
+              if (sequencer_finish) begin
+                break;
+              end
+
+              @(posedge vif.clk_i);
+            end
         end
 
-        for(int i=0;i<99;i++)
-            @(posedge vif.clk_i);
-
-        $display("Driver : end");
+      driver_finish = 1; //nb_packets_sent_to_dut
+      $display("[INFO] [DRIVER] Number of packets received from sequencer : %d", nb_packets_received_from_sequencer);
+      $display("[INFO] [DRIVER] Number of packets sent to dut : %d", nb_packets_sent_to_dut);
+      $display("[INFO] [DRIVER] : end");
     endtask : run
 
 endclass : Driver

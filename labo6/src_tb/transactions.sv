@@ -33,7 +33,7 @@ class BlePacket;
   //channel is random and constrained
   rand int channel;
 
-  /* Contrainte sur la taille des donnees en fonction du type de paquet */
+  /* Ensure that the size of the packets is a valid one when randomize */
   constraint size_range {
     (isAdv == 1) -> size inside {[4:15]};
     (isAdv == 0) -> size inside {[0:63]};
@@ -97,9 +97,24 @@ class BlePacket;
 endclass : BlePacket
 
 class AnalyzerUsbPacket;
-    `define usb_max_data_size (256)
+    `define usb_max_data_size (64+10) // 64 data + 10 header size in bytes
 
     bit [0:`usb_max_data_size-1][7:0] data;
+
+    typedef struct {
+      byte size;
+      byte rssi;
+      logic[6:0] channel;
+      logic isAdv;
+      logic[31:0] address;
+      logic[15:0] header;
+      byte data[64];
+    } usb_packet_t;
+
+    union {
+      usb_packet_t usb_packet;
+      logic[`usb_max_data_size-1:0] usb_packets_bits;
+    } usb_generic;
 
     //formatting data to be printed
     function string psprint();
