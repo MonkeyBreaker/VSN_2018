@@ -30,6 +30,7 @@ class Sequencer;
 
           //Send to driver and scoreboard
           sequencer_to_driver_fifo.put(packet_data);
+          sequencer_to_scoreboard_fifo.put(packet_data);
 
         $display("[INFO] [SEQUENCER] [Packet N:%d] sent a data packet on channel %d, for the device 0x%h with a dataToSend: 0x%h",
                packet_counter, packet_data.channel, packet_data.data_device_addr, packet_data.dataToSend);
@@ -115,6 +116,7 @@ class Sequencer;
              //Send a data packet with the corresponding advertising address
              //----------------------------------------------------
              packet_data = new;
+             nb_valid_packets_generated++;
              // Data packet
              packet_data.isAdv = 0;
             // Set the address we have advertized just before

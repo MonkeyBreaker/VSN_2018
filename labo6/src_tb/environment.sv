@@ -81,7 +81,7 @@ class Environment;
     $display("errors : %d", scoreboard.nb_bad_packets);
 
     $display("\n");
-    if((sequencer.nb_valid_packets_generated != scoreboard.ble_valid_packets_counter) || (scoreboard.nb_bad_packets)) begin
+    if((sequencer.nb_packets_generated != scoreboard.ble_packets_counter) || (scoreboard.nb_bad_packets) || (scoreboard.ble_valid_packets_counter!=scoreboard.usb_packets_counter)) begin
       $display("Test bench failed !");
     end
     else begin
