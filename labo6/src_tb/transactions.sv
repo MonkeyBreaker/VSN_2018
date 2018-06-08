@@ -107,7 +107,7 @@ class AnalyzerUsbPacket;
       bit[0:7] reserved;
       bit[0:31] address;
       bit[0:15] header;
-      bit [0:(`ble_max_data_size)-1][0:7] data;
+      bit [(`ble_max_data_size)-1:0][0:7] data;
     } usb_packet_t;
 
     union packed{
