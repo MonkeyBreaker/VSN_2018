@@ -97,28 +97,32 @@ class BlePacket;
 endclass : BlePacket
 
 class AnalyzerUsbPacket;
-    `define usb_max_data_size (64+10) // 64 data + 10 header size in bytes
+    `define usb_max_data_size ((64+10)) // 64 data + 10 header size in bytes
 
-    bit [0:`usb_max_data_size-1][7:0] data;
-
-    typedef struct {
-      byte size;
-      byte rssi;
-      logic[6:0] channel;
-      logic isAdv;
-      logic[31:0] address;
-      logic[15:0] header;
-      byte data[64];
+    typedef struct packed{
+      bit[0:7] size;
+      bit[0:7] rssi;
+      bit[0:6] channel;
+      bit isAdv;
+      bit[0:7] reserved;
+      bit[0:31] address;
+      bit[0:15] header;
+      bit [0:(`ble_max_data_size)-1][0:7] data;
     } usb_packet_t;
 
-    union {
+    union packed{
       usb_packet_t usb_packet;
-      logic[`usb_max_data_size-1:0] usb_packets_bits;
+      bit [0:(`usb_max_data_size)-1][7:0] usb_packets_bits;
     } usb_generic;
 
     //formatting data to be printed
     function string psprint();
-      $sformat(psprint, "AnalyzerUsbPacket: data = %h", data);
+      // $sformat(psprint, "UsbPacket, %h", this.usb_generic.usb_packets_bits);
+      $sformat(psprint, "UsbPacket, size : %d, rssi= %h, channel = %d, isAdv = %d, address = %h,  header = %h, data = %h",
+                                              this.usb_generic.usb_packet.size, this.usb_generic.usb_packet.rssi,
+                                              this.usb_generic.usb_packet.channel, this.usb_generic.usb_packet.isAdv,
+                                              this.usb_generic.usb_packet.address, this.usb_generic.usb_packet.header,
+                                              this.usb_generic.usb_packet.data);
     endfunction : psprint
 
 endclass : AnalyzerUsbPacket

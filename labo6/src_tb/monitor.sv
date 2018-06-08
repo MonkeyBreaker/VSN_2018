@@ -47,7 +47,7 @@ class Monitor;
           // Both are High
           if (current_state) begin
             if (vif.valid_o) begin
-              usb_packet.usb_generic.usb_packets_bits[i*8-1+:8] = vif.data_o;
+              usb_packet.usb_generic.usb_packets_bits[i] = vif.data_o;
               i++;
             end;
           end;
