@@ -11,6 +11,7 @@ class Driver;
 
     // This variable is used to save the packets received from the sequencer
     BlePacket ble_packets_channels [0:39];
+    ble_fifo_t ble_packets_fifo = new();
 
     int bits_to_send[0:39];
 
@@ -43,6 +44,7 @@ class Driver;
         // All the bits of the packet were send
       $display("[INFO] [DRIVER] Complete packet send, on channel %d", packet.channel);
         nb_packets_sent_to_dut++;
+        packet = new;
         packet.channel = `packet_channel_invalid;
         nb_packets_to_process = nb_packets_to_process-1;
       end
@@ -52,10 +54,10 @@ class Driver;
     task clear_and_wait();
       // Wait clk between after frame sent to dut
       // All the inputs signals are reset
-      vif.serial_i <= 1;
+      // vif.serial_i <= 1;
       vif.valid_i <= 0;
       vif.channel_i <= 0;
-      vif.rssi_i <= 0;
+      // vif.rssi_i <= 0;
       @(posedge vif.clk_i);
     endtask
 
@@ -89,16 +91,18 @@ class Driver;
               // If the channel has already a packet, drop the new packet
               nb_packets_received_from_sequencer++;
 
+              $display("[INFO] [DRIVER] I got a packet, channel : %d, size bytes : %d", packet.channel, (packet.sizeToSend - 1)/8);
+
               if(`packet_channel_invalid == ble_packets_channels[packet.channel].channel) begin
                 nb_packets_to_process += 1;
-
+                
                 // Saves the packet at the corresponding channel to send
                 ble_packets_channels[packet.channel] = packet;
                 bits_to_send[packet.channel] = packet.sizeToSend - 1;
-                $display("[INFO] [DRIVER] I got a packet, channel : %d, size bytes : %d", packet.channel, bits_to_send[packet.channel]/8);
               end
               else begin
-                $display("[INFO] [DRIVER] Channel already used");
+                $display("[INFO] [DRIVER] Channel already used, the packed is store");
+                ble_packets_fifo.put(packet);
               end
             end
 
@@ -108,7 +112,6 @@ class Driver;
                 // send a bit if the channel is a valid one
                 if(`packet_channel_invalid != ble_packets_channels[i].channel) begin
                   if(i == ble_packets_channels[i].channel) begin
-                  //$display("[Driver] Send bit");
                     send_packet_bit(ble_packets_channels[i]);
                     clear_and_wait();
                   end
@@ -120,9 +123,20 @@ class Driver;
               end
             end
             else begin
-              // If all the packets sent from the sequencer are sent, finish the driver
-              if (sequencer_finish) begin
-                break;
+
+              if (!ble_packets_fifo.num()) begin
+                // If all the packets sent from the sequencer are sent, finish the driver
+                if (sequencer_finish) begin
+                  break;
+                end
+              end
+              else begin
+                nb_packets_to_process++;
+                ble_packets_fifo.get(packet);
+
+                ble_packets_channels[packet.channel] = packet;
+                bits_to_send[packet.channel] = packet.sizeToSend - 1;
+                $display("[INFO] [DRIVER] A packet will be retrieve, channel : %d, size bytes : %d", packet.channel, bits_to_send[packet.channel]/8);
               end
 
               @(posedge vif.clk_i);

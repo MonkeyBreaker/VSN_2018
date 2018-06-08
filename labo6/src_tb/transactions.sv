@@ -10,20 +10,20 @@ class BlePacket;
 
   `define ble_max_data_size (64)
 
-  logic[(`ble_max_data_size*8+16+32+8):0] dataToSend;
+  bit[(`ble_max_data_size*8+16+32+8):0] dataToSend;
   int sizeToSend;
 
   /* Champs generes aleatoirement */
-  logic isAdv;
-  logic dataValid = 1;
-  logic[31:0] advertasing_address;
-  rand logic[31:0] addr;
-  rand logic[15:0] header;
+  bit isAdv;
+  bit dataValid = 1;
+  bit[31:0] advertasing_address;
+  rand bit[31:0] addr;
+  rand bit[15:0] header;
 
-  rand logic[(`ble_max_data_size*8):0] rawData;
+  rand bit[(`ble_max_data_size*8):0] rawData;
 
-  rand logic[5:0] size;
-  rand logic[7:0] rssi;
+  rand bit[5:0] size;
+  rand bit[7:0] rssi;
 
   //In case of data packet only (do not care when advertising)
   // Device address for data packet... must have been advertised before. (according to BLE norm)
@@ -48,13 +48,13 @@ class BlePacket;
 
 
   function string psprint();
-  $sformat(psprint, "BlePacket, isAdv : %b, addr= %h, time = %t\nsizeSend = %d, dataSend = %h\nrssi = %d",
-                                            this.isAdv, this.addr, $time,sizeToSend,dataToSend, this.rssi);
+  $sformat(psprint, "BlePacket, isAdv : %b, addr= %h, channel= %d, rssi = %d,  SizeSend = %d, dataSend = %h",
+                      this.isAdv, this.addr, this.channel, this.rssi,this.sizeToSend, this.dataToSend);
   endfunction : psprint
 
   function void post_randomize();
 
-	  logic[7:0] preamble=8'h55;
+	  bit[7:0] preamble=8'h55;
 
 	/* Initialisation des données à envoyer */
   	dataToSend = 0;

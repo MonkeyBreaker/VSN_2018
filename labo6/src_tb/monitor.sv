@@ -60,7 +60,7 @@ class Monitor;
           // If the driver finished and a timeout occurred, it can be concluded
           // that all the data was sent to the monitor
           if (driver_finish) begin
-            if (timeout > 200) begin
+            if (timeout > 1500) begin
               break;
             end
             else begin

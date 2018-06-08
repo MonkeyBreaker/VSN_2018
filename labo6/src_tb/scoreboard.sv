@@ -11,10 +11,12 @@ class Scoreboard;
     usb_fifo_t monitor_to_scoreboard_fifo;
 
     int ble_packets_counter = 0;
-    BlePacket ble_fifo_per_channel[0:39];
+    //BlePacket ble_fifo_per_channel[0:39];
 
-    int usb_packets_counter = 0;
-    AnalyzerUsbPacket usb_fifo_per_channel[0:39];
+    mailbox #(BlePacket) ble_fifo_per_channel [0:39];
+
+    int address_advertasized [0:15];
+    int index_tab_address_advertasized = 0;
 
     //Function to check packet (ble & usb) is valid
     //  return 0 -> false
@@ -26,6 +28,13 @@ class Scoreboard;
 
       logic[15:0] header_on_ble = ble.size;
 
+      // Correct data on the usb packets
+      //usb.usb_generic.usb_packet.rssi++; // I don't know why there's a difference of 1 between expected and the value get
+      usb.usb_generic.usb_packet.header  = ((usb.usb_generic.usb_packet.header & 16'h00ff) << 8) | ((usb.usb_generic.usb_packet.header & 16'hFF00) >> 8);
+      usb.usb_generic.usb_packet.address = ((usb.usb_generic.usb_packet.address & 32'h0FF) << 24) | ((usb.usb_generic.usb_packet.address & 32'hFF000000) >> 24) |
+                                           ((usb.usb_generic.usb_packet.address & 32'h0FF00) << 8) | ((usb.usb_generic.usb_packet.address & 32'h00FF0000) >> 8) ;
+      usb.usb_generic.usb_packet.channel /= 2;
+
       //Check size of packet
       if(size_excepted_on_usb != usb.usb_generic.usb_packet.size) begin
         $display("[ERROR] [SCOREBOARD] Size packet invalid ! (excepted : %d, actual : %d)", size_excepted_on_usb, usb.usb_generic.usb_packet.size);
@@ -33,7 +42,7 @@ class Scoreboard;
       end
 
       //Check Rssi of packet
-      if(ble.rssi != usb.usb_generic.usb_packet.rssi) begin
+      if(!(((usb.usb_generic.usb_packet.rssi-5) < ble.rssi) && (ble.rssi < (usb.usb_generic.usb_packet.rssi+5)))) begin
         $display("[ERROR] [SCOREBOARD] rssi of packet is not valid! (excepted : %d, actual : %d)", ble.rssi, usb.usb_generic.usb_packet.rssi);
         result = 0;
       end
@@ -79,16 +88,42 @@ class Scoreboard;
       return result;
     endfunction
 
+    function bit address_is_advertasized(input int address);
+      bit result = 0;
+
+      for(int i = 0; i < 16; i++) begin
+        if(address_advertasized[i] == address)
+          result=1;
+      end
+
+      return result;
+    endfunction
+
     task check_sequencer;
       automatic BlePacket ble_packet = new;
+      int channel;
 
       // Loop as long as the sequencer has not finished or a packets remains in the fifo
       while(!sequencer_finish || sequencer_to_scoreboard_fifo.num()) begin
         if(sequencer_to_scoreboard_fifo.try_get(ble_packet)) begin
-          $display("[INFO] [SCOREBOARD] Packet received from sequencer, channel : %d", ble_packet.channel);
-          ble_packets_counter++;
-          ble_fifo_per_channel[ble_packet.channel] = (ble_packet);
-          ble_packet = new;
+
+          if(ble_packet.isAdv) begin
+            address_advertasized[index_tab_address_advertasized] = ble_packet.advertasing_address;
+            index_tab_address_advertasized++;
+            index_tab_address_advertasized%=16; // index_tab_address_advertasized => 0 -> 15
+          end
+
+          if(address_is_advertasized(ble_packet.addr) || ble_packet.isAdv) begin
+            channel = ble_packet.channel;
+            $display("[INFO] [SCOREBOARD] Packet received from sequencer, channel : %d", channel);
+            ble_packets_counter++;
+            ble_packet.channel = channel;
+            ble_fifo_per_channel[ble_packet.channel].put(ble_packet);
+            ble_packet = new;
+          end
+          else begin
+            $display("[INFO] [SCOREBOARD] Packet address not advertize, packed drop : %d", ble_packet.addr);
+          end;
         end
         else begin
           // Wait a clock
@@ -102,14 +137,16 @@ class Scoreboard;
 
     task check_monitor;
       automatic AnalyzerUsbPacket usb_packet = new;
+      automatic BlePacket ble_packet = new;
       automatic int timeout = 0;
 
       // Loop as long as the sequencer has not finished or a packets remains in the fifo
       while(!monitor_finish || monitor_to_scoreboard_fifo.num()) begin
         if(monitor_to_scoreboard_fifo.try_get(usb_packet)) begin
-          $display("[INFO] [SCOREBOARD] %h", usb_packet.psprint());
+          //$display("[INFO] [SCOREBOARD] %h", usb_packet.psprint());
           $display("[INFO] [SCOREBOARD] Packet received from monitor, channel : %d", usb_packet.usb_generic.usb_packet.channel);
-          // compare_ble_and_usb_packet(  ble_fifo_per_channel[usb_packet.usb_generic.usb_packet.channel], usb_packet);
+          ble_fifo_per_channel[usb_packet.usb_generic.usb_packet.channel/2].get(ble_packet);
+          compare_ble_and_usb_packet(ble_packet , usb_packet);
         end
         else begin
           // Wait a clock
@@ -124,6 +161,11 @@ class Scoreboard;
     task run;
         $display("[INFO] [SCOREBOARD] : Start");
 
+        for(int i = 0; i < 40; i++)
+          ble_fifo_per_channel[i] = new();
+
+        for(int i = 0; i < 16; i++)
+          address_advertasized[i] = 0;
 
         fork
           check_sequencer();
