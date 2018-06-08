@@ -11,7 +11,10 @@ class Scoreboard;
     usb_fifo_t monitor_to_scoreboard_fifo;
 
     int ble_packets_counter = 0;
+    int ble_valid_packets_counter = 0;
     mailbox #(BlePacket) ble_fifo_per_channel [0:39];
+
+    int usb_packets_counter = 0;
 
     int address_advertasized [0:15];
     int index_tab_address_advertasized = 0;
@@ -125,12 +128,13 @@ class Scoreboard;
           if(address_is_advertasized(ble_packet.addr) || ble_packet.isAdv) begin
             channel = ble_packet.channel;
             $display("[INFO] [SCOREBOARD] Packet received from sequencer, channel : %d", channel);
-            ble_packets_counter++;
+            ble_valid_packets_counter++;
             ble_packet.channel = channel;
             ble_fifo_per_channel[ble_packet.channel].put(ble_packet);
             ble_packet = new;
           end
           else begin
+            ble_packets_counter++;
             $display("[INFO] [SCOREBOARD] Packet address not advertize, packed drop : %d", ble_packet.addr);
           end;
         end
@@ -154,7 +158,7 @@ class Scoreboard;
         if(monitor_to_scoreboard_fifo.try_get(usb_packet)) begin
           $display("[INFO] [SCOREBOARD] Packet received from monitor, channel : %d", usb_packet.usb_generic.usb_packet.channel);
           ble_fifo_per_channel[usb_packet.usb_generic.usb_packet.channel/2].get(ble_packet);
-          ble_packets_counter--;
+          usb_packets_counter++;
 
           // If the packet has an error, increment the error counter
           if(!compare_ble_and_usb_packet(ble_packet , usb_packet))
@@ -184,8 +188,10 @@ class Scoreboard;
           check_monitor();
         join;
 
-        if(ble_packets_counter)
-          $display("[INFO] [ERROR] All packets send to the DUT where not received via USB, number remaining : %d", ble_packets_counter);
+        if(ble_valid_packets_counter != usb_packets_counter)
+          $display("[INFO] [ERROR] All packets send to the DUT where not received via USB, number remaining");
+          $display("[INFO] [ERROR] BLE Packets : %d", ble_packets_counter);
+          $display("[INFO] [ERROR] BLE Packets : %d", usb_packets_counter);
 
         $display("[INFO] [SCOREBOARD] : End");
     endtask : run

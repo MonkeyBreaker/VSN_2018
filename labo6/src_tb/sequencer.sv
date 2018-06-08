@@ -12,6 +12,7 @@ class Sequencer;
     ble_fifo_t sequencer_to_scoreboard_fifo;
 
     int nb_packets_generated = 0;
+    int nb_valid_packets_generated = 0;
 
     /**
     * This task sends data randomly without advertising
@@ -46,7 +47,7 @@ class Sequencer;
          //Send an advertizing packet
          //----------------------------------------------------
          packet_advertising = new;
-         nb_packets_generated++;
+         nb_valid_packets_generated++;
          packet_advertising.isAdv = 1; // Set as "advertizing" packet
          void'(packet_advertising.randomize());
 
@@ -67,7 +68,7 @@ class Sequencer;
              //Send a data packet with the corresponding advertising address
              //----------------------------------------------------
              packet_data = new;
-             nb_packets_generated++;
+             nb_valid_packets_generated++;
              packet_data.isAdv = 0; // Set as "data" packet
              packet_data.data_device_addr = packet_advertising.advertasing_address; // Set the address we have advertized just before
              void'(packet_data.randomize());
@@ -95,7 +96,7 @@ class Sequencer;
          //Send an advertizing packet
          //----------------------------------------------------
          packet_advertising = new;
-         nb_packets_generated++;
+         nb_valid_packets_generated++;
          packet_advertising.isAdv = 1; // Set as "advertizing" packet
          void'(packet_advertising.randomize());
 
@@ -150,6 +151,7 @@ class Sequencer;
              testcase2();
 
          sequencer_finish = 1;
+         nb_packets_generated += nb_valid_packets_generated;
 
        $display("[INFO] [SEQUENCER] Packets generated : %d", nb_packets_generated);
        $display("[INFO] [SEQUENCER] end");

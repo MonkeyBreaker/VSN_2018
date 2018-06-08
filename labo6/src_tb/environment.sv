@@ -56,6 +56,41 @@ class Environment;
             scoreboard.run();
         join;
 
+    $display("\n\n");
+    $display("\n\n");
+    $display("\n\n");
+    $display("------------------------------------------------------------");
+    $display("------------ END -------------------------------------------");
+    $display("------------------------------------------------------------");
+    $display("Sequencer packets generated %d", sequencer.nb_packets_generated);
+    $display("Sequencer valid packets generated %d", sequencer.nb_valid_packets_generated);
+    $display("Driver received %d packets", driver.nb_packets_received_from_sequencer);
+    $display("Driver send %d packets to DUT", driver.nb_packets_sent_to_dut);
+    $display("Monitor received %d packets from DUT", monitor.nb_packets_received_from_dut);
+    $display("Monitor send %d packets to Scoreboard", monitor.nb_packets_send_to_scoreboard);
+    $display("Scoreboard received %d BLE packets", scoreboard.ble_valid_packets_counter);
+    $display("Scoreboard received %d USB packets", scoreboard.usb_packets_counter);
+
+    $display("\n");
+    $display("------------------------------------------------------------");
+    $display("------------ RESULTS ---------------------------------------");
+    $display("------------------------------------------------------------");
+
+    $display("Scoreboard compared %d USB vs BLE packets", scoreboard.usb_packets_counter);
+    $display("valid packets : %d", scoreboard.usb_packets_counter-scoreboard.nb_bad_packets);
+    $display("errors : %d", scoreboard.nb_bad_packets);
+
+    $display("\n");
+    if((sequencer.nb_valid_packets_generated != scoreboard.ble_valid_packets_counter) || (scoreboard.nb_bad_packets)) begin
+      $display("Test bench failed !");
+    end
+    else begin
+      $display("Test bench Success !");
+    end
+    $display("\n");
+
+    $display("------------------------------------------------------------");
+
     endtask : run
 
 endclass : Environment
