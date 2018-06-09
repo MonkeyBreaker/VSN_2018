@@ -9,10 +9,10 @@ class Scoreboard;
 
     ble_fifo_t sequencer_to_scoreboard_fifo;
     usb_fifo_t monitor_to_scoreboard_fifo;
+    ble_fifo_t ble_fifo_per_channel [0:39];
 
     int ble_packets_counter = 0;
     int ble_valid_packets_counter = 0;
-    mailbox #(BlePacket) ble_fifo_per_channel [0:39];
 
     int usb_packets_counter = 0;
 
@@ -182,6 +182,7 @@ class Scoreboard;
     task run;
         $display("[INFO] [SCOREBOARD] : Start");
 
+        // Initialisation of the buffers and mailbox
         for(int i = 0; i < 40; i++)
           ble_fifo_per_channel[i] = new();
 
@@ -196,9 +197,14 @@ class Scoreboard;
         ble_packets_counter += ble_valid_packets_counter;
 
         if(ble_valid_packets_counter != usb_packets_counter) begin
-          $display("[INFO] [ERROR] All packets send to the DUT where not received via USB, number remaining");
-          $display("[INFO] [ERROR] BLE Packets : %d", ble_valid_packets_counter);
-          $display("[INFO] [ERROR] BLE Packets : %d", usb_packets_counter);
+          $display("[ERROR] [SCOREBOARD] All packets send to the DUT where not received via USB");
+          $display("[ERROR] [SCOREBOARD] BLE Packets : %d", ble_valid_packets_counter);
+          $display("[ERROR] [SCOREBOARD] USB Packets : %d", usb_packets_counter);
+
+          for(int i = 0; i < 40; i++) begin
+            if(ble_fifo_per_channel[i].num())
+              $display("[INFO] [SCOREBOARD] Remaining BLE packets : %d, on channel %d", ble_fifo_per_channel[i].num(), i);
+          end
         end
 
         $display("[INFO] [SCOREBOARD] : End");

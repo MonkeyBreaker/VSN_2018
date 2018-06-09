@@ -35,8 +35,8 @@ class BlePacket;
 
   /* Ensure that the size of the packets is a valid one when randomize */
   constraint size_range {
-    (isAdv == 1) -> size inside {[4:15]};
-    (isAdv == 0) -> size inside {[0:63]};
+    (isAdv == 1) -> size inside {[11:15]};
+    (isAdv == 0) -> size inside {[11:63]};
   }
 
   constraint channel_range {
