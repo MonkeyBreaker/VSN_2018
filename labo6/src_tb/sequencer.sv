@@ -31,6 +31,7 @@ class Sequencer;
       //Send to driver and scoreboard
       sequencer_to_driver_fifo.put(packet_data);
       sequencer_to_scoreboard_fifo.put(packet_data);
+      nb_packets_generated++;
 
       $display("[INFO] [SEQUENCER] [AD N:%d] %s", packet_counter,packet_data.psprint());
       //$display("[INFO] [SEQUENCER] [AD N:%d] Sent an advertising packet on channel %d, for the device 0x%h with dataToSend: 0x%h",
@@ -57,6 +58,7 @@ class Sequencer;
       //Send to driver and scoreboard
       sequencer_to_driver_fifo.put(packet_advertising);
       sequencer_to_scoreboard_fifo.put(packet_advertising);
+      nb_packets_generated++;
 
       $display("[INFO] [SEQUENCER] [AD N:%d] %s", packet_counter,packet_advertising.psprint());
       //$display("[INFO] [SEQUENCER] [AD N:%d] Sent an advertising packet on channel %d, for the device 0x%h with dataToSend: 0x%h",
@@ -88,6 +90,11 @@ class Sequencer;
          //----------------------------------------------------
          send_advertizing_packet(-1, address_advertasized);
          nb_valid_packets_generated++;
+
+         // Needeed to ensure that all the addresses are advertaized
+         for(int i = 0; i < 1000; i++) begin
+           #10;
+         end
 
          for(int i=0;i<10;i++) begin
 
@@ -124,6 +131,12 @@ class Sequencer;
        nb_valid_packets_generated++;
        send_advertizing_packet(12, address_advertasized_2);
        nb_valid_packets_generated++;
+
+       // Needeed to ensure that all the addresses are advertaized
+       for(int i = 0; i < 1000; i++) begin
+         #10;
+       end
+
 
        for(int i=0;i<20;i++) begin
 
@@ -170,8 +183,15 @@ class Sequencer;
        nb_valid_packets_generated++;
 
        // Send 16 advertazing packets to drop the first packet
-       for(int i = 0; i < 16; i++)
+       for(int i = 0; i < 16; i++) begin
         send_advertizing_packet(-1, address_advertasized);
+        nb_valid_packets_generated++;
+       end
+
+       // Needeed to ensure that all the addresses are advertaized
+       for(int i = 0; i < 100000; i++) begin
+         #10;
+       end
 
        // This packet will be droped, the address wil not be advertasized
        send_data_packet(-1, address_advertasized_first);
@@ -193,12 +213,31 @@ class Sequencer;
        //Send an advertizing packet
        //----------------------------------------------------
        send_advertizing_packet(9, address_advertasized);
-       nb_valid_packets_generated++;
 
        //----------------------------------------------------
        //Send a data packet with the corresponding advertising address
        //----------------------------------------------------
        for(int i = 0; i < 1; i++) begin
+         send_data_packet(-1, address_advertasized);
+       end
+     endtask
+
+     /*
+      * Bad channel for the data packet
+     */
+     task testcase7();
+       int address_advertasized;
+       //----------------------------------------------------
+       //Send an advertizing packet
+       //----------------------------------------------------
+       send_advertizing_packet(-1, address_advertasized);
+       nb_valid_packets_generated++;
+
+       //----------------------------------------------------
+       //Send a data packet with the corresponding advertising address
+       //----------------------------------------------------
+       send_data_packet(0, address_advertasized);
+       for(int i = 0; i < 10; i++) begin
          send_data_packet(-1, address_advertasized);
          nb_valid_packets_generated++;
        end
@@ -222,6 +261,8 @@ class Sequencer;
              testcase5();
          else if (6 == testcase)
              testcase6();
+         else if (7 == testcase)
+             testcase7();
          else begin
              testcase0();
              testcase1();
@@ -230,10 +271,10 @@ class Sequencer;
              testcase4();
              testcase5();
              testcase6();
+             testcase7();
          end
 
          sequencer_finish = 1;
-         nb_packets_generated += nb_valid_packets_generated;
 
        $display("[INFO] [SEQUENCER] Packets generated : %d", nb_packets_generated);
        $display("[INFO] [SEQUENCER] end");

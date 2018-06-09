@@ -119,12 +119,17 @@ class Scoreboard;
         if(sequencer_to_scoreboard_fifo.try_get(ble_packet)) begin
 
           if(ble_packet.isAdv) begin
-            address_advertasized[index_tab_address_advertasized] = ble_packet.advertasing_address;
-            index_tab_address_advertasized++;
-            index_tab_address_advertasized%=16; // index_tab_address_advertasized => 0 -> 15
+            if(((ble_packet.channel == 0) || (ble_packet.channel == 12)  || (ble_packet.channel == 39)) && (ble_packet.addr == 32'h12345678)) begin
+              address_advertasized[index_tab_address_advertasized] = ble_packet.advertasing_address;
+              index_tab_address_advertasized++;
+              index_tab_address_advertasized%=16; // index_tab_address_advertasized => 0 -> 15
+              $display("index_tab_address_advertasized : %d", index_tab_address_advertasized);
+            end
+            else
+              ble_packet.isAdv = 0; // Discards the packet
           end
 
-          if(address_is_advertasized(ble_packet.addr) || ble_packet.isAdv) begin
+          if(((address_is_advertasized(ble_packet.addr) && ((ble_packet.channel != 0) && (ble_packet.channel != 12)  && (ble_packet.channel != 39)))) || ble_packet.isAdv) begin
             channel = ble_packet.channel;
             $display("[INFO] [SCOREBOARD] Packet received from sequencer, channel : %d", channel);
             ble_valid_packets_counter++;
@@ -133,7 +138,7 @@ class Scoreboard;
             ble_packet = new;
           end
           else begin
-            ble_packets_counter++;
+            ble_packets_counter = ble_packets_counter + 1;
             $display("[INFO] [SCOREBOARD] Packet address not advertize, packed drop : %d", ble_packet.addr);
           end;
         end
@@ -166,7 +171,7 @@ class Scoreboard;
               nb_bad_packets++;
             end
             else begin
-              $display("[INFO] [SCOREBOARD] USB Packet received but nothing on the BLE FIFO Channel : %d", usb_packet.usb_generic.usb_packet.channel);
+              $display("[INFO] [SCOREBOARD] USB Packet received but nothing on the BLE FIFO Channel : %h", usb_packet.usb_generic.usb_packet.channel);
             end
         end
         else begin
@@ -194,7 +199,7 @@ class Scoreboard;
           check_monitor();
         join;
 
-        ble_packets_counter += ble_valid_packets_counter;
+        ble_packets_counter = ble_packets_counter + ble_valid_packets_counter;
 
         if(ble_valid_packets_counter != usb_packets_counter) begin
           $display("[ERROR] [SCOREBOARD] All packets send to the DUT where not received via USB");

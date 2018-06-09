@@ -68,7 +68,8 @@ class Environment;
     $display("Driver send %d packets to DUT", driver.nb_packets_sent_to_dut);
     $display("Monitor received %d packets from DUT", monitor.nb_packets_received_from_dut);
     $display("Monitor send %d packets to Scoreboard", monitor.nb_packets_send_to_scoreboard);
-    $display("Scoreboard received %d BLE packets", scoreboard.ble_valid_packets_counter);
+    $display("Scoreboard received %d BLE packets", scoreboard.ble_packets_counter);
+    $display("Scoreboard received %d BLE packets valid", scoreboard.ble_valid_packets_counter);
     $display("Scoreboard received %d USB packets", scoreboard.usb_packets_counter);
 
     $display("\n");
